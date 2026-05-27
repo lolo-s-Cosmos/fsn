@@ -61,7 +61,8 @@ export function registerAllTools(pi: ExtensionAPI): void {
         { description: "JSON Patch 操作数组" },
       ),
     }),
-    execute: async (_toolCallId, params) => patchStateTool(params),
+    execute: async (_toolCallId, params, _signal, _onUpdate, ctx) =>
+      patchStateTool(params, ctx.sessionManager),
   });
 
   pi.registerTool({
@@ -73,6 +74,7 @@ export function registerAllTools(pi: ExtensionAPI): void {
       "- 玩家采取可能产生风险、耗时、暴露、疲劳或魔力消耗的行动\n" +
       "- 战斗、潜入、调查、施法、逃跑、长距离移动、夜间行动\n" +
       "- 休息、医疗、魔术治疗、安全屋整备等恢复行为；恢复也会推进时间和敌方行动\n" +
+      "- 善后、反侦察等压低神秘痕迹/社会痕迹/敌方警觉的行动\n" +
       "- 任何你想写成「暂时安全」「没人发现」「没有代价」的场景，必须先调用本工具确认\n" +
       "- 玩家试图用一句话、善意或临场觉悟化解危机时\n\n" +
       "【严禁的行为】\n" +
@@ -94,6 +96,8 @@ export function registerAllTools(pi: ExtensionAPI): void {
           Type.Literal("医疗"),
           Type.Literal("魔术治疗"),
           Type.Literal("安全屋整备"),
+          Type.Literal("善后"),
+          Type.Literal("反侦察"),
         ],
         { description: "本轮玩家行动类型" },
       ),
@@ -109,7 +113,8 @@ export function registerAllTools(pi: ExtensionAPI): void {
       是否公开: Type.Boolean({ description: "是否可能被普通人、监控、组织记录或目击" }),
       是否涉及神秘: Type.Boolean({ description: "是否涉及魔术、从者、宝具、结界、异常现象等神秘" }),
     }),
-    execute: async (_toolCallId, params) => resolveConsequenceTool(params),
+    execute: async (_toolCallId, params, _signal, _onUpdate, ctx) =>
+      resolveConsequenceTool(params, ctx.sessionManager),
   });
 
   pi.registerTool({
@@ -174,7 +179,8 @@ export function registerAllTools(pi: ExtensionAPI): void {
         description: "判定行动耗时，0-720 分钟；可传整数或整数字符串",
       }),
     }),
-    execute: async (_toolCallId, params) => resolveCheckTool(params),
+    execute: async (_toolCallId, params, _signal, _onUpdate, ctx) =>
+      resolveCheckTool(params, ctx.sessionManager),
   });
 
   pi.registerTool({

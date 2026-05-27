@@ -23,7 +23,9 @@ export type ConsequenceAction =
   | "休息"
   | "医疗"
   | "魔术治疗"
-  | "安全屋整备";
+  | "安全屋整备"
+  | "善后"
+  | "反侦察";
 export type ConsequenceRisk = "低" | "中" | "高" | "致命";
 
 export interface ConsequenceInput {
@@ -210,13 +212,38 @@ function applyRecovery(state: State, input: ConsequenceInput): StatEffect[] {
         adjustSocialExposure(state, -Math.min(8, 2 + hours), "处理普通社会痕迹"),
         adjustEnemyAlert(state, 4 + timeAlert + unsafeAlert, "整备期间敌方推进"),
       ]);
+    case "善后":
+      return compactEffects([
+        advanceTime(state, input.预计耗时分钟, "善后耗时"),
+        adjustFatigue(state, 2 + Math.ceil(risk.fatigue / 2), "善后操作负荷"),
+        setDangerLevel(state, risk.danger, "善后现场风险"),
+        adjustMysteryExposure(state, -Math.min(10, 3 + hours * 2), "清理/遮蔽神秘痕迹"),
+        adjustSocialExposure(state, -Math.min(16, 5 + hours * 3), "清理普通社会痕迹"),
+        adjustEnemyAlert(state, 1 + timeAlert + unsafeAlert, "善后期间敌方推进"),
+      ]);
+    case "反侦察":
+      return compactEffects([
+        advanceTime(state, input.预计耗时分钟, "反侦察耗时"),
+        adjustFatigue(state, 4 + risk.fatigue, "反侦察行动负荷"),
+        adjustManaStrain(
+          state,
+          input.是否涉及神秘 ? 2 + risk.manaStrain : 0,
+          "遮蔽/误导的神秘成本",
+        ),
+        setDangerLevel(state, Math.max(1, risk.danger), "反侦察风险"),
+        adjustMysteryExposure(state, -Math.min(6, 2 + hours), "切断神秘追踪线索"),
+        adjustEnemyAlert(state, -Math.min(14, 4 + hours * 3), "误导敌方判断"),
+      ]);
   }
 
   throw new Error(`未处理的恢复行动类型: ${input.行动类型}`);
 }
 
 function actionProfile(
-  action: Exclude<ConsequenceAction, "休息" | "医疗" | "魔术治疗" | "安全屋整备">,
+  action: Exclude<
+    ConsequenceAction,
+    "休息" | "医疗" | "魔术治疗" | "安全屋整备" | "善后" | "反侦察"
+  >,
 ): ActionProfile {
   switch (action) {
     case "移动":
@@ -379,6 +406,14 @@ function buildNarrativeConstraints(input: ConsequenceInput, before: State, after
   if (input.行动类型 === "魔术治疗") {
     constraints.push("魔术治疗不是免费治愈；必须描写魔术回路负担或神秘痕迹。 ");
   }
+  if (input.行动类型 === "善后") {
+    constraints.push("善后只能逐步压低痕迹，不能把已发生的目击、记录或术式残留写成从未存在。 ");
+  }
+  if (input.行动类型 === "反侦察") {
+    constraints.push(
+      "反侦察是在误导敌方判断，不是让敌人失忆；高风险反侦察失败时应改用 resolve_check。 ",
+    );
+  }
   if (input.风险等级 === "高" || input.风险等级 === "致命") {
     constraints.push("高风险行动不能被一句话、善意或临场觉悟轻易化解。 ");
   }
@@ -388,13 +423,20 @@ function buildNarrativeConstraints(input: ConsequenceInput, before: State, after
 
 function isRecoveryAction(
   action: ConsequenceAction,
-): action is "休息" | "医疗" | "魔术治疗" | "安全屋整备" {
-  return action === "休息" || action === "医疗" || action === "魔术治疗" || action === "安全屋整备";
+): action is "休息" | "医疗" | "魔术治疗" | "安全屋整备" | "善后" | "反侦察" {
+  return (
+    action === "休息" ||
+    action === "医疗" ||
+    action === "魔术治疗" ||
+    action === "安全屋整备" ||
+    action === "善后" ||
+    action === "反侦察"
+  );
 }
 
 function assertPressureAction(
   action: ConsequenceAction,
-): Exclude<ConsequenceAction, "休息" | "医疗" | "魔术治疗" | "安全屋整备"> {
+): Exclude<ConsequenceAction, "休息" | "医疗" | "魔术治疗" | "安全屋整备" | "善后" | "反侦察"> {
   if (isRecoveryAction(action)) {
     throw new Error(`恢复行动不能按压力行动处理: ${action}`);
   }
@@ -413,12 +455,14 @@ function assertAction(value: unknown): ConsequenceAction {
     value === "休息" ||
     value === "医疗" ||
     value === "魔术治疗" ||
-    value === "安全屋整备"
+    value === "安全屋整备" ||
+    value === "善后" ||
+    value === "反侦察"
   ) {
     return value;
   }
   throw new Error(
-    `非法行动类型: ${formatUnknown(value)}。可选: 移动/调查/社交/潜入/战斗/魔术/逃跑/休息/医疗/魔术治疗/安全屋整备。`,
+    `非法行动类型: ${formatUnknown(value)}。可选: 移动/调查/社交/潜入/战斗/魔术/逃跑/休息/医疗/魔术治疗/安全屋整备/善后/反侦察。`,
   );
 }
 
