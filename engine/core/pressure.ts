@@ -25,7 +25,10 @@ export function advanceTime(state: State, minutes: number, reason: string): Stat
     after: state.经过分钟,
     delta: minutes,
     reason,
-    narrativeHint: `时间流逝了 ${minutes} 分钟：${beforeTime} → ${state.当前时间}。`,
+    narrativeHint:
+      minutes >= 30
+        ? `时间流逝了 ${minutes} 分钟：${beforeTime} → ${state.当前时间}。`
+        : "时间只短暂推进；无需明说分钟数，只要让行动节奏连贯。",
   };
 }
 
@@ -49,7 +52,13 @@ export function adjustBody(state: State, amount: number, reason: string): StatEf
     before,
     state.身体状态,
     reason,
-    amount >= 0 ? "身体有所恢复，但不能写成立刻完全无伤。" : "伤势必须影响行动、疼痛或判断。",
+    amount >= 0
+      ? significant(amount, 5)
+        ? "身体有所恢复，但不能写成立刻完全无伤。"
+        : "身体状态只轻微好转，可用细节带过。"
+      : significant(amount, 5)
+        ? "伤势必须影响行动、疼痛或判断。"
+        : "伤势变化轻微，不必夸大。",
   );
 }
 
@@ -61,7 +70,13 @@ export function adjustFatigue(state: State, amount: number, reason: string): Sta
     before,
     state.疲劳,
     reason,
-    amount >= 0 ? "必须体现疲劳、迟滞、疼痛或注意力下降。" : "疲劳下降了，但时间已经流逝。",
+    amount >= 0
+      ? significant(amount, 10)
+        ? "疲劳明显上升；需要体现在动作迟缓、呼吸、疼痛或注意力下降中。"
+        : "疲劳轻微上升，只需用一两个感官细节暗示。"
+      : significant(amount, 10)
+        ? "疲劳明显下降，但时间已经流逝。"
+        : "疲劳轻微缓和，可用节奏变化带过。",
   );
 }
 
@@ -74,8 +89,12 @@ export function adjustManaStrain(state: State, amount: number, reason: string): 
     state.魔力负担,
     reason,
     amount >= 0
-      ? "必须体现魔术回路或供魔压力，禁止把神秘当免费资源。"
-      : "魔力负担缓和了，但不能抹去此前代价。",
+      ? significant(amount, 10)
+        ? "魔力负担明显上升；必须体现魔术回路或供魔压力，禁止把神秘当免费资源。"
+        : "魔力负担轻微上升，可用回路刺痛、呼吸紊乱等细节暗示。"
+      : significant(amount, 10)
+        ? "魔力负担明显缓和，但不能抹去此前代价。"
+        : "魔力负担轻微缓和，可低调处理。",
   );
 }
 
@@ -87,7 +106,11 @@ export function setDangerLevel(state: State, level: number, reason: string): Sta
     before,
     state.危险度,
     reason,
-    state.危险度 >= 3 ? "当前场景不能写成完全安全。" : "危险暂时下降，但不是世界停止行动。",
+    state.危险度 >= 4
+      ? "当前场景危急，不能写成完全安全。"
+      : state.危险度 >= 3
+        ? "当前场景仍有危险，叙事中保留压力即可。"
+        : "危险暂时下降，但不是世界停止行动。",
   );
 }
 
@@ -99,7 +122,13 @@ export function adjustMysteryExposure(state: State, amount: number, reason: stri
     before,
     state.神秘暴露,
     reason,
-    amount >= 0 ? "必须暗示神秘侧痕迹，禁止断言绝对没人察觉。" : "神秘痕迹被压低，但不能凭空消失。",
+    amount >= 0
+      ? significant(amount, 15)
+        ? "神秘痕迹明显增加；必须暗示魔术侧可能察觉。"
+        : "神秘痕迹轻微增加，只需暗示残留，不要断言绝对没人察觉。"
+      : significant(amount, 10)
+        ? "神秘痕迹被压低，但不能写成从未存在。"
+        : "神秘痕迹轻微降低，可用遮蔽细节带过。",
   );
 }
 
@@ -112,8 +141,12 @@ export function adjustSocialExposure(state: State, amount: number, reason: strin
     state.社会暴露,
     reason,
     amount >= 0
-      ? "必须体现目击、记录、传闻或善后压力。"
-      : "普通社会痕迹被处理，但会消耗时间或资源。",
+      ? significant(amount, 10)
+        ? "社会痕迹明显增加；需要体现目击、记录、传闻或善后压力。"
+        : "社会痕迹轻微增加，可用路人视线、记录风险等细节暗示。"
+      : significant(amount, 10)
+        ? "普通社会痕迹被处理，但会消耗时间或资源。"
+        : "普通社会痕迹轻微降低，可低调处理。",
   );
 }
 
@@ -126,8 +159,12 @@ export function adjustEnemyAlert(state: State, amount: number, reason: string): 
     state.敌方警觉,
     reason,
     amount >= 0
-      ? "敌对势力会在自己的时间线里行动。"
-      : "敌方注意被误导或降温，但不会忘记已发生的异常。",
+      ? significant(amount, 10)
+        ? "敌方警觉明显上升；敌对势力会在自己的时间线里行动。"
+        : "敌方警觉轻微上升，只需保留远处压力或潜在反应。"
+      : significant(amount, 8)
+        ? "敌方注意被误导或降温，但不会忘记已发生的异常。"
+        : "敌方注意轻微下降，可用误导生效的细节带过。",
   );
 }
 
@@ -216,6 +253,10 @@ function pushThresholdHint(
   if (value >= warning) {
     hints.push(`${label} ≥ ${warning}：${warningHint}。`);
   }
+}
+
+function significant(amount: number, threshold: number): boolean {
+  return Math.abs(amount) >= threshold;
 }
 
 function advanceIsoTime(isoTime: string, minutes: number): string {

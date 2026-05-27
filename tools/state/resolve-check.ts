@@ -1,6 +1,7 @@
 import { assertCheckInput, resolveCheck, type RawCheckInput } from "../../engine/core/check";
 import { persistCurrentState } from "../../engine/core/state-persistence";
 import { writeStateToDetails } from "../../engine/core/state";
+import { noNumberNarrativeHint } from "../runtime/narrative-hints";
 import { textResult, type ToolResult } from "../runtime/tool-result";
 
 export function resolveCheckTool(params: RawCheckInput, sessionManager: unknown): ToolResult {
@@ -15,7 +16,10 @@ export function resolveCheckTool(params: RawCheckInput, sessionManager: unknown)
     ...result.effects.map((effect) => `- ${effect.reason}: ${formatValueChange(effect.before, effect.after, effect.delta)}`),
     "",
     "叙事约束：",
-    ...uniqueHints(result.effects.map((effect) => effect.narrativeHint), result.narrativeConstraints).map((hint) => `- ${hint}`),
+    ...uniqueHints(
+      result.effects.map((effect) => effect.narrativeHint),
+      [...result.narrativeConstraints, noNumberNarrativeHint()],
+    ).map((hint) => `- ${hint}`),
   ].join("\n");
 
   const details: Record<string, unknown> = {};
