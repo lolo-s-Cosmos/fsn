@@ -94,7 +94,7 @@ export function resolveConsequence(input: ConsequenceInput): ConsequenceResult {
     after,
     delta: calculateActualDelta(before, after),
     effects,
-    narrativeConstraints: buildNarrativeConstraints(input, before, after, effects),
+    narrativeConstraints: buildNarrativeConstraints(input, before, after),
   };
 }
 
@@ -365,17 +365,8 @@ function toPatchOps(state: State): PatchOp[] {
   ];
 }
 
-function buildNarrativeConstraints(
-  input: ConsequenceInput,
-  before: State,
-  after: State,
-  effects: StatEffect[],
-): string[] {
-  const constraints = [
-    `必须表现时间流逝：${before.当前时间} → ${after.当前时间}`,
-    ...effects.map((effect) => `${effect.reason}: ${effect.narrativeHint}`),
-    ...pressureThresholdHints(after),
-  ];
+function buildNarrativeConstraints(input: ConsequenceInput, before: State, after: State): string[] {
+  const constraints = [...pressureThresholdHints(after)];
 
   if (after.疲劳 < before.疲劳 || after.魔力负担 < before.魔力负担) {
     constraints.push("恢复降低了压力，但时间已经流逝；NPC 和敌对势力不会因此暂停行动。 ");

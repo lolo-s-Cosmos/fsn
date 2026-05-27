@@ -81,13 +81,7 @@ export function resolveCheck(input: CheckInput): CheckResult {
     roll: { kept, rolls, modifier, dc, total },
     outcome,
     effects,
-    narrativeConstraints: buildNarrativeConstraints(
-      input,
-      outcome,
-      modifierEntries,
-      effects,
-      after,
-    ),
+    narrativeConstraints: buildNarrativeConstraints(input, outcome, modifierEntries, after),
   };
 }
 
@@ -207,12 +201,10 @@ function buildNarrativeConstraints(
   input: CheckInput,
   outcome: CheckOutcome,
   modifierEntries: ModifierEntry[],
-  effects: StatEffect[],
   after: State,
 ): string[] {
   const constraints = [
     `判定结果是「${outcome}」；必须按结果叙事，禁止改写成更乐观的结果。`,
-    ...effects.map((effect) => `${effect.reason}: ${effect.narrativeHint}`),
     ...pressureThresholdHints(after),
   ];
 
