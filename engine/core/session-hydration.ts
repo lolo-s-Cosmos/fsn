@@ -1,4 +1,4 @@
-import type { SessionEntry } from "@earendil-works/pi-coding-agent";
+import type { CompactionEntry, SessionEntry } from "@earendil-works/pi-coding-agent";
 
 import { hydrateState, sessionKey } from "./state";
 
@@ -20,17 +20,31 @@ function extractState(entry: SessionEntry | undefined): unknown {
   if (entry.type === "custom" && entry.customType === sessionKey()) {
     return extractStateFromSessionData(entry.data);
   }
+  if (entry.type === "compaction") {
+    return extractStateFromCompaction(entry);
+  }
+  if (entry.type === "branch_summary") {
+    return extractStateFromSessionData(entry.details);
+  }
   if (entry.type === "message" && entry.message.role === "toolResult") {
     return extractStateFromSessionData(entry.message.details?.[sessionKey()]);
   }
   return undefined;
 }
 
+function extractStateFromCompaction(entry: CompactionEntry): unknown {
+  return extractStateFromSessionData(entry.details);
+}
+
 function extractStateFromSessionData(raw: unknown): unknown {
   if (!isRecord(raw)) {
     return undefined;
   }
-  return raw["state"];
+  const directState = raw["state"];
+  if (directState !== undefined) {
+    return directState;
+  }
+  return extractStateFromSessionData(raw[sessionKey()]);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
