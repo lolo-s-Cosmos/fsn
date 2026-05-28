@@ -83,7 +83,7 @@ export function registerAllTools(pi: ExtensionAPI): void {
       "- 把治疗/休息写成免费瞬间满血\n" +
       "- 忽略工具返回的叙事约束",
     parameters: Type.Object({
-      行动类型: Type.Union(
+      actionType: Type.Union(
         [
           Type.Literal("移动"),
           Type.Literal("调查"),
@@ -100,17 +100,19 @@ export function registerAllTools(pi: ExtensionAPI): void {
         ],
         { description: "本轮玩家行动类型" },
       ),
-      风险等级: Type.Union(
+      riskLevel: Type.Union(
         [Type.Literal("低"), Type.Literal("中"), Type.Literal("高"), Type.Literal("致命")],
         {
           description: "本轮行动风险等级",
         },
       ),
-      预计耗时分钟: Type.Union([Type.Integer(), Type.String()], {
+      durationMinutes: Type.Union([Type.Integer(), Type.String()], {
         description: "行动预计耗时，0-1440 分钟；可传整数或整数字符串",
       }),
-      是否公开: Type.Boolean({ description: "是否可能被普通人、监控、组织记录或目击" }),
-      是否涉及神秘: Type.Boolean({ description: "是否涉及魔术、从者、宝具、结界、异常现象等神秘" }),
+      isPublic: Type.Boolean({ description: "是否可能被普通人、监控、组织记录或目击" }),
+      involvesMystery: Type.Boolean({
+        description: "是否涉及魔术、从者、宝具、结界、异常现象等神秘",
+      }),
     }),
     execute: async (_toolCallId, params, _signal, _onUpdate, ctx) =>
       resolveConsequenceTool(params, ctx.sessionManager),
@@ -131,7 +133,7 @@ export function registerAllTools(pi: ExtensionAPI): void {
       "- 掷骰后无视结果，或把失败写成温柔成功\n" +
       "- 用骰子覆盖神秘度压制、魔力守恒、宝具真名等硬规则",
     parameters: Type.Object({
-      判定类型: Type.Union(
+      checkType: Type.Union(
         [
           Type.Literal("体能"),
           Type.Literal("隐匿"),
@@ -142,7 +144,7 @@ export function registerAllTools(pi: ExtensionAPI): void {
         ],
         { description: "判定领域" },
       ),
-      难度: Type.Union(
+      difficulty: Type.Union(
         [
           Type.Literal("简单"),
           Type.Literal("普通"),
@@ -154,19 +156,22 @@ export function registerAllTools(pi: ExtensionAPI): void {
           description: "目标难度：简单 DC8 / 普通 DC12 / 困难 DC16 / 极难 DC20 / 不可能 DC25",
         },
       ),
-      优势: Type.Union([Type.Literal("劣势"), Type.Literal("正常"), Type.Literal("优势")], {
+      advantage: Type.Union([Type.Literal("劣势"), Type.Literal("正常"), Type.Literal("优势")], {
         description: "优势掷 2 取高，劣势掷 2 取低，正常掷 1d20",
       }),
-      风险等级: Type.Union(
+      riskLevel: Type.Union(
         [Type.Literal("低"), Type.Literal("中"), Type.Literal("高"), Type.Literal("致命")],
         {
           description: "失败/代价的压力等级",
         },
       ),
-      失败后果: Type.Union([Type.Literal("疲劳"), Type.Literal("受伤"), Type.Literal("魔力负担")], {
-        description: "失败或代价成功时优先增加的压力项",
-      }),
-      预计耗时分钟: Type.Union([Type.Integer(), Type.String()], {
+      consequence: Type.Union(
+        [Type.Literal("疲劳"), Type.Literal("受伤"), Type.Literal("魔力负担")],
+        {
+          description: "失败或代价成功时优先增加的压力项",
+        },
+      ),
+      durationMinutes: Type.Union([Type.Integer(), Type.String()], {
         description: "判定行动耗时，0-720 分钟；可传整数或整数字符串",
       }),
     }),
@@ -190,8 +195,10 @@ export function registerAllTools(pi: ExtensionAPI): void {
       "- 即兴「发明」型月设定——哪怕你觉得自己记得，也先查一下\n\n" +
       "参数: 查询（必填，角色名/地点名/概念名/时间线名）、类型（可选，角色/从者/地点/设定/时间线）",
     parameters: Type.Object({
-      查询: Type.String({ description: "搜索关键词——角色名、地点名、概念名等" }),
-      类型: Type.Optional(Type.String({ description: "可选过滤: 角色、从者、地点、设定、时间线" })),
+      query: Type.String({ description: "搜索关键词——角色名、地点名、概念名等" }),
+      category: Type.Optional(
+        Type.String({ description: "可选过滤: 角色、从者、地点、设定、时间线" }),
+      ),
     }),
     execute: async (_toolCallId, params) => lookupTool(params),
   });

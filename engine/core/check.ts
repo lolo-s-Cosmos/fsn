@@ -16,21 +16,21 @@ export type CheckConsequence = "疲劳" | "受伤" | "魔力负担";
 export type CheckOutcome = "大成功" | "成功" | "代价成功" | "失败" | "严重失败";
 
 export interface CheckInput {
-  判定类型: CheckKind;
-  难度: CheckDifficulty;
-  优势: CheckAdvantage;
-  风险等级: CheckRisk;
-  失败后果: CheckConsequence;
-  预计耗时分钟: number;
+  checkType: CheckKind;
+  difficulty: CheckDifficulty;
+  advantage: CheckAdvantage;
+  riskLevel: CheckRisk;
+  consequence: CheckConsequence;
+  durationMinutes: number;
 }
 
 export interface RawCheckInput {
-  判定类型: unknown;
-  难度: unknown;
-  优势: unknown;
-  风险等级: unknown;
-  失败后果: unknown;
-  预计耗时分钟: unknown;
+  checkType: unknown;
+  difficulty: unknown;
+  advantage: unknown;
+  riskLevel: unknown;
+  consequence: unknown;
+  durationMinutes: unknown;
 }
 
 export interface CheckRoll {
@@ -61,11 +61,11 @@ const MAX_CHECK_MINUTES = 720;
 export function resolveCheck(input: CheckInput): CheckResult {
   const before = cloneState();
   const after = cloneState();
-  const modifierEntries = buildModifierEntries(before, input.判定类型);
+  const modifierEntries = buildModifierEntries(before, input.checkType);
   const modifier = modifierEntries.reduce((sum, entry) => sum + entry.amount, 0);
-  const rolls = rollD20(input.优势);
-  const kept = keepRoll(rolls, input.优势);
-  const dc = difficultyDc(input.难度);
+  const rolls = rollD20(input.advantage);
+  const kept = keepRoll(rolls, input.advantage);
+  const dc = difficultyDc(input.difficulty);
   const total = kept + modifier;
   const outcome = decideOutcome(total, dc);
   const effects = applyCheckEffects(after, input, outcome);
@@ -84,20 +84,20 @@ export function resolveCheck(input: CheckInput): CheckResult {
 
 export function assertCheckInput(raw: RawCheckInput): CheckInput {
   return {
-    判定类型: assertKind(raw.判定类型),
-    难度: assertDifficulty(raw.难度),
-    优势: assertAdvantage(raw.优势),
-    风险等级: assertRisk(raw.风险等级),
-    失败后果: assertConsequence(raw.失败后果),
-    预计耗时分钟: assertDuration(raw.预计耗时分钟),
+    checkType: assertKind(raw.checkType),
+    difficulty: assertDifficulty(raw.difficulty),
+    advantage: assertAdvantage(raw.advantage),
+    riskLevel: assertRisk(raw.riskLevel),
+    consequence: assertConsequence(raw.consequence),
+    durationMinutes: assertDuration(raw.durationMinutes),
   };
 }
 
 function applyCheckEffects(state: State, input: CheckInput, outcome: CheckOutcome): StatEffect[] {
   const severity = outcomeSeverity(outcome);
-  const risk = riskSeverity(input.风险等级);
+  const risk = riskSeverity(input.riskLevel);
   const basePressure = Math.max(0, severity + risk - 1);
-  const effects: StatEffect[] = [advanceTime(state, input.预计耗时分钟, "判定耗时")];
+  const effects: StatEffect[] = [advanceTime(state, input.durationMinutes, "判定耗时")];
 
   if (outcome === "大成功") {
     effects.push(adjustFatigue(state, -Math.min(3, risk), "大成功节省体力"));
@@ -114,7 +114,7 @@ function applyCheckEffects(state: State, input: CheckInput, outcome: CheckOutcom
     effects.push(
       applyPrimaryConsequence(
         state,
-        input.失败后果,
+        input.consequence,
         Math.max(2, basePressure),
         "代价成功的主要代价",
       ),
@@ -125,14 +125,19 @@ function applyCheckEffects(state: State, input: CheckInput, outcome: CheckOutcom
   if (outcome === "失败") {
     effects.push(adjustFatigue(state, 3 + risk, "失败后的额外负荷"));
     effects.push(
-      applyPrimaryConsequence(state, input.失败后果, Math.max(4, basePressure + 2), "失败后果"),
+      applyPrimaryConsequence(state, input.consequence, Math.max(4, basePressure + 2), "失败后果"),
     );
     return compactEffects(effects);
   }
 
   effects.push(adjustFatigue(state, 5 + risk, "严重失败造成的透支"));
   effects.push(
-    applyPrimaryConsequence(state, input.失败后果, Math.max(7, basePressure + 4), "严重失败后果"),
+    applyPrimaryConsequence(
+      state,
+      input.consequence,
+      Math.max(7, basePressure + 4),
+      "严重失败后果",
+    ),
   );
   return compactEffects(effects);
 }
@@ -202,7 +207,7 @@ function buildNarrativeConstraints(
   if (outcome === "失败" || outcome === "严重失败") {
     constraints.push("失败必须推进场景，不能回滚、卡住或用温柔兜底抵消。 ");
   }
-  if (input.风险等级 === "高" || input.风险等级 === "致命") {
+  if (input.riskLevel === "高" || input.riskLevel === "致命") {
     constraints.push("高风险判定的后果必须改变局势，而不是只改变语气。 ");
   }
   return constraints;
@@ -366,7 +371,7 @@ function assertConsequence(value: unknown): CheckConsequence {
 }
 
 function assertDuration(value: unknown): number {
-  const duration = coerceInteger(value, "预计耗时分钟");
+  const duration = coerceInteger(value, "durationMinutes");
   if (duration < 0 || duration > MAX_CHECK_MINUTES) {
     throw new Error(`非法预计耗时分钟: ${duration}。必须在 0-${MAX_CHECK_MINUTES} 之间。`);
   }

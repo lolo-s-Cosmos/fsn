@@ -25,19 +25,19 @@ export type ConsequenceAction =
 export type ConsequenceRisk = "低" | "中" | "高" | "致命";
 
 export interface ConsequenceInput {
-  行动类型: ConsequenceAction;
-  风险等级: ConsequenceRisk;
-  预计耗时分钟: number;
-  是否公开: boolean;
-  是否涉及神秘: boolean;
+  actionType: ConsequenceAction;
+  riskLevel: ConsequenceRisk;
+  durationMinutes: number;
+  isPublic: boolean;
+  involvesMystery: boolean;
 }
 
 export interface RawConsequenceInput {
-  行动类型: unknown;
-  风险等级: unknown;
-  预计耗时分钟: unknown;
-  是否公开: unknown;
-  是否涉及神秘: unknown;
+  actionType: unknown;
+  riskLevel: unknown;
+  durationMinutes: unknown;
+  isPublic: unknown;
+  involvesMystery: unknown;
 }
 
 export interface ConsequenceDelta {
@@ -73,7 +73,7 @@ const MAX_ACTION_MINUTES = 1440;
 export function resolveConsequence(input: ConsequenceInput): ConsequenceResult {
   const before = cloneState();
   const after = cloneState();
-  const effects = isRecoveryAction(input.行动类型)
+  const effects = isRecoveryAction(input.actionType)
     ? applyRecovery(after, input)
     : applyPressure(after, input);
   patchState(toPatchOps(after));
@@ -89,25 +89,25 @@ export function resolveConsequence(input: ConsequenceInput): ConsequenceResult {
 
 export function assertConsequenceInput(raw: RawConsequenceInput): ConsequenceInput {
   return {
-    行动类型: assertAction(raw.行动类型),
-    风险等级: assertRisk(raw.风险等级),
-    预计耗时分钟: assertDuration(raw.预计耗时分钟),
-    是否公开: assertBoolean(raw.是否公开, "是否公开"),
-    是否涉及神秘: assertBoolean(raw.是否涉及神秘, "是否涉及神秘"),
+    actionType: assertAction(raw.actionType),
+    riskLevel: assertRisk(raw.riskLevel),
+    durationMinutes: assertDuration(raw.durationMinutes),
+    isPublic: assertBoolean(raw.isPublic, "isPublic"),
+    involvesMystery: assertBoolean(raw.involvesMystery, "involvesMystery"),
   };
 }
 
 function applyPressure(state: State, input: ConsequenceInput): StatEffect[] {
-  const action = actionProfile(assertPressureAction(input.行动类型));
-  const risk = riskProfile(input.风险等级);
-  const durationFatigue = Math.floor(input.预计耗时分钟 / 60);
+  const action = actionProfile(assertPressureAction(input.actionType));
+  const risk = riskProfile(input.riskLevel);
+  const durationFatigue = Math.floor(input.durationMinutes / 60);
 
   return compactEffects([
-    advanceTime(state, input.预计耗时分钟, "行动耗时"),
+    advanceTime(state, input.durationMinutes, "行动耗时"),
     adjustFatigue(state, action.fatigue + risk.fatigue + durationFatigue, "行动负荷"),
     adjustManaStrain(
       state,
-      action.manaStrain + (input.是否涉及神秘 ? risk.manaStrain : 0),
+      action.manaStrain + (input.involvesMystery ? risk.manaStrain : 0),
       "魔力/神秘负担",
     ),
     setDangerLevel(state, Math.max(action.danger, risk.danger), "当前场景危险度"),
@@ -115,21 +115,21 @@ function applyPressure(state: State, input: ConsequenceInput): StatEffect[] {
 }
 
 function applyRecovery(state: State, input: ConsequenceInput): StatEffect[] {
-  const risk = riskProfile(input.风险等级);
-  const hours = Math.floor(input.预计耗时分钟 / 60);
+  const risk = riskProfile(input.riskLevel);
+  const hours = Math.floor(input.durationMinutes / 60);
 
-  switch (input.行动类型) {
+  switch (input.actionType) {
     case "休息":
       return compactEffects([
-        advanceTime(state, input.预计耗时分钟, "休息耗时"),
+        advanceTime(state, input.durationMinutes, "休息耗时"),
         adjustBody(
           state,
-          input.预计耗时分钟 >= 360 ? 4 : input.预计耗时分钟 >= 90 ? 1 : 0,
+          input.durationMinutes >= 360 ? 4 : input.durationMinutes >= 90 ? 1 : 0,
           "自然恢复",
         ),
         adjustFatigue(
           state,
-          -Math.min(30, 6 + Math.floor(input.预计耗时分钟 / 45) * 4),
+          -Math.min(30, 6 + Math.floor(input.durationMinutes / 45) * 4),
           "休息恢复疲劳",
         ),
         adjustManaStrain(state, -Math.min(16, 3 + hours * 2), "呼吸与回路稳定"),
@@ -137,14 +137,14 @@ function applyRecovery(state: State, input: ConsequenceInput): StatEffect[] {
       ]);
     case "医疗":
       return compactEffects([
-        advanceTime(state, input.预计耗时分钟, "医疗耗时"),
+        advanceTime(state, input.durationMinutes, "医疗耗时"),
         adjustBody(state, Math.min(24, 6 + hours * 3), "医疗处理伤势"),
         adjustFatigue(state, -Math.min(14, 3 + hours * 2), "医疗休整"),
         setDangerLevel(state, risk.danger, "医疗环境安全度"),
       ]);
     case "魔术治疗":
       return compactEffects([
-        advanceTime(state, input.预计耗时分钟, "魔术治疗耗时"),
+        advanceTime(state, input.durationMinutes, "魔术治疗耗时"),
         adjustBody(state, Math.min(22, 5 + hours * 3), "魔术治疗伤势"),
         adjustFatigue(state, -Math.min(10, 2 + hours), "短暂缓解身体负担"),
         adjustManaStrain(state, 10 + risk.manaStrain, "治疗术式反噬/供魔压力"),
@@ -152,23 +152,23 @@ function applyRecovery(state: State, input: ConsequenceInput): StatEffect[] {
       ]);
     case "补魔":
       return compactEffects([
-        advanceTime(state, input.预计耗时分钟, "补魔耗时"),
+        advanceTime(state, input.durationMinutes, "补魔耗时"),
         adjustBody(state, Math.min(12, 3 + hours * 2), "魔力供给辅助身体恢复"),
         adjustFatigue(state, -Math.min(18, 4 + hours * 3), "魔力补充缓解疲劳"),
         adjustManaStrain(state, -Math.min(40, 12 + hours * 5), "外部魔力供给补充"),
         setDangerLevel(
           state,
-          input.是否涉及神秘 ? Math.max(2, risk.danger) : risk.danger,
+          input.involvesMystery ? Math.max(2, risk.danger) : risk.danger,
           "补魔环境安全度",
         ),
       ]);
     case "安全屋整备":
       return compactEffects([
-        advanceTime(state, input.预计耗时分钟, "安全屋整备耗时"),
-        adjustBody(state, input.预计耗时分钟 >= 360 ? 6 : 2, "安全环境处理伤势"),
+        advanceTime(state, input.durationMinutes, "安全屋整备耗时"),
+        adjustBody(state, input.durationMinutes >= 360 ? 6 : 2, "安全环境处理伤势"),
         adjustFatigue(
           state,
-          -Math.min(40, 10 + Math.floor(input.预计耗时分钟 / 45) * 4),
+          -Math.min(40, 10 + Math.floor(input.durationMinutes / 45) * 4),
           "安全屋休整",
         ),
         adjustManaStrain(state, -Math.min(28, 6 + hours * 3), "安全屋稳定魔术回路"),
@@ -176,7 +176,7 @@ function applyRecovery(state: State, input: ConsequenceInput): StatEffect[] {
       ]);
   }
 
-  throw new Error(`未处理的恢复行动类型: ${input.行动类型}`);
+  throw new Error(`未处理的恢复行动类型: ${input.actionType}`);
 }
 
 function actionProfile(
@@ -252,20 +252,20 @@ function buildNarrativeConstraints(input: ConsequenceInput, before: State, after
   if (after.疲劳 < before.疲劳 || after.魔力负担 < before.魔力负担) {
     constraints.push("恢复降低了压力，但时间已经流逝；NPC 和敌对势力不会因此暂停行动。 ");
   }
-  if (input.行动类型 === "医疗") {
+  if (input.actionType === "医疗") {
     constraints.push(
       "医疗恢复会带来费用、记录、目击或解释压力；如发生消费必须另行 patch_state 扣款。 ",
     );
   }
-  if (input.行动类型 === "魔术治疗") {
+  if (input.actionType === "魔术治疗") {
     constraints.push("魔术治疗不是免费治愈；必须描写魔术回路负担或神秘痕迹。 ");
   }
-  if (input.行动类型 === "补魔") {
+  if (input.actionType === "补魔") {
     constraints.push(
       "补魔必须描写身体接触/体液交换和契约参与者；供给方在叙事中同样消耗魔力，不能写成免费电池。 ",
     );
   }
-  if (input.风险等级 === "高" || input.风险等级 === "致命") {
+  if (input.riskLevel === "高" || input.riskLevel === "致命") {
     constraints.push("高风险行动不能被一句话、善意或临场觉悟轻易化解。 ");
   }
 
@@ -323,7 +323,7 @@ function assertRisk(value: unknown): ConsequenceRisk {
 }
 
 function assertDuration(value: unknown): number {
-  const duration = coerceInteger(value, "预计耗时分钟");
+  const duration = coerceInteger(value, "durationMinutes");
   if (duration < 0 || duration > MAX_ACTION_MINUTES) {
     throw new Error(`非法预计耗时分钟: ${duration}。必须在 0-${MAX_ACTION_MINUTES} 之间。`);
   }

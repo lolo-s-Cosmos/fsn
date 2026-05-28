@@ -5,8 +5,8 @@ import { fileURLToPath } from "node:url";
 export type LookupKind = "角色" | "地点" | "设定" | "时间线";
 
 export interface LookupRequest {
-  查询: string;
-  类型?: string;
+  query: string;
+  category?: string;
 }
 
 export interface LookupResult {
@@ -53,8 +53,8 @@ const MIN_FUZZY_SCORE = 52;
 let cachedStore: WorldDataStore | null = null;
 
 export function lookupWorldData(request: LookupRequest): LookupResult {
-  const query = normalizeQuery(request.查询);
-  const kinds = resolveKinds(request.类型);
+  const query = normalizeQuery(request.query);
+  const kinds = resolveKinds(request.category);
   const store = getWorldDataStore();
 
   for (const kind of kinds) {
