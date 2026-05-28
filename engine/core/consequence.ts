@@ -20,7 +20,8 @@ export type ConsequenceAction =
   | "休息"
   | "医疗"
   | "魔术治疗"
-  | "安全屋整备";
+  | "安全屋整备"
+  | "补魔";
 export type ConsequenceRisk = "低" | "中" | "高" | "致命";
 
 export interface ConsequenceInput {
@@ -149,6 +150,18 @@ function applyRecovery(state: State, input: ConsequenceInput): StatEffect[] {
         adjustManaStrain(state, 10 + risk.manaStrain, "治疗术式反噬/供魔压力"),
         setDangerLevel(state, Math.max(2, risk.danger), "术式环境风险"),
       ]);
+    case "补魔":
+      return compactEffects([
+        advanceTime(state, input.预计耗时分钟, "补魔耗时"),
+        adjustBody(state, Math.min(12, 3 + hours * 2), "魔力供给辅助身体恢复"),
+        adjustFatigue(state, -Math.min(18, 4 + hours * 3), "魔力补充缓解疲劳"),
+        adjustManaStrain(state, -Math.min(40, 12 + hours * 5), "外部魔力供给补充"),
+        setDangerLevel(
+          state,
+          input.是否涉及神秘 ? Math.max(2, risk.danger) : risk.danger,
+          "补魔环境安全度",
+        ),
+      ]);
     case "安全屋整备":
       return compactEffects([
         advanceTime(state, input.预计耗时分钟, "安全屋整备耗时"),
@@ -167,7 +180,7 @@ function applyRecovery(state: State, input: ConsequenceInput): StatEffect[] {
 }
 
 function actionProfile(
-  action: Exclude<ConsequenceAction, "休息" | "医疗" | "魔术治疗" | "安全屋整备">,
+  action: Exclude<ConsequenceAction, "休息" | "医疗" | "魔术治疗" | "安全屋整备" | "补魔">,
 ): ActionProfile {
   switch (action) {
     case "移动":
@@ -247,6 +260,11 @@ function buildNarrativeConstraints(input: ConsequenceInput, before: State, after
   if (input.行动类型 === "魔术治疗") {
     constraints.push("魔术治疗不是免费治愈；必须描写魔术回路负担或神秘痕迹。 ");
   }
+  if (input.行动类型 === "补魔") {
+    constraints.push(
+      "补魔必须描写身体接触/体液交换和契约参与者；供给方在叙事中同样消耗魔力，不能写成免费电池。 ",
+    );
+  }
   if (input.风险等级 === "高" || input.风险等级 === "致命") {
     constraints.push("高风险行动不能被一句话、善意或临场觉悟轻易化解。 ");
   }
@@ -256,13 +274,19 @@ function buildNarrativeConstraints(input: ConsequenceInput, before: State, after
 
 function isRecoveryAction(
   action: ConsequenceAction,
-): action is "休息" | "医疗" | "魔术治疗" | "安全屋整备" {
-  return action === "休息" || action === "医疗" || action === "魔术治疗" || action === "安全屋整备";
+): action is "休息" | "医疗" | "魔术治疗" | "安全屋整备" | "补魔" {
+  return (
+    action === "休息" ||
+    action === "医疗" ||
+    action === "魔术治疗" ||
+    action === "安全屋整备" ||
+    action === "补魔"
+  );
 }
 
 function assertPressureAction(
   action: ConsequenceAction,
-): Exclude<ConsequenceAction, "休息" | "医疗" | "魔术治疗" | "安全屋整备"> {
+): Exclude<ConsequenceAction, "休息" | "医疗" | "魔术治疗" | "安全屋整备" | "补魔"> {
   if (isRecoveryAction(action)) {
     throw new Error(`恢复行动不能按压力行动处理: ${action}`);
   }
@@ -281,12 +305,13 @@ function assertAction(value: unknown): ConsequenceAction {
     value === "休息" ||
     value === "医疗" ||
     value === "魔术治疗" ||
-    value === "安全屋整备"
+    value === "安全屋整备" ||
+    value === "补魔"
   ) {
     return value;
   }
   throw new Error(
-    `非法行动类型: ${formatUnknown(value)}。可选: 移动/调查/社交/潜入/战斗/魔术/逃跑/休息/医疗/魔术治疗/安全屋整备。`,
+    `非法行动类型: ${formatUnknown(value)}。可选: 移动/调查/社交/潜入/战斗/魔术/逃跑/休息/医疗/魔术治疗/安全屋整备/补魔。`,
   );
 }
 

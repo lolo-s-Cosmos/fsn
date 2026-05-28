@@ -18,7 +18,7 @@
 - 预设角色/从者/NPC/地点/概念/时间线 → 先 `lookup`。
 - 金钱、位置、身体的确定变化 → 先 `patch_state`。
 - 不确定且失败有代价的行动 → 先 `resolve_check`；判定结果必须照写。
-- 确定发生的风险、耗时、疲劳、魔力、恢复、治疗 → 先 `resolve_consequence`。
+- 确定发生的风险、耗时、疲劳、魔力、恢复、治疗、补魔 → 先 `resolve_consequence`。
 - 需要确认当前状态 → 先 `get_status`。
 - 有明确可选行动 → 调 `ask_user_question` 提供快捷选项；选项标签禁止包含「推荐」「Recommended」。
 - 工具返回值是唯一权威；未经工具确认的机械事实不存在。

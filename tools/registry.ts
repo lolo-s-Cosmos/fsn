@@ -74,7 +74,7 @@ export function registerAllTools(pi: ExtensionAPI): void {
       "【必须调用的场景】\n" +
       "- 玩家采取可能产生风险、耗时、疲劳或魔力消耗的行动\n" +
       "- 战斗、潜入、调查、施法、逃跑、长距离移动、夜间行动\n" +
-      "- 休息、医疗、魔术治疗、安全屋整备等恢复行为；恢复也会推进时间\n" +
+      "- 休息、医疗、魔术治疗、安全屋整备、补魔等恢复行为；恢复也会推进时间\n" +
       "- 任何你想写成「暂时安全」「没有代价」的场景，必须先调用本工具确认\n" +
       "- 玩家试图用一句话、善意或临场觉悟化解危机时\n\n" +
       "【严禁的行为】\n" +
@@ -96,6 +96,7 @@ export function registerAllTools(pi: ExtensionAPI): void {
           Type.Literal("医疗"),
           Type.Literal("魔术治疗"),
           Type.Literal("安全屋整备"),
+          Type.Literal("补魔"),
         ],
         { description: "本轮玩家行动类型" },
       ),
