@@ -76,6 +76,7 @@ else
 fi
 
 export PI_CODING_AGENT_DIR=".pi/agent"
+export PI_CLAUDE_OAUTH_REINJECT_SCOPE=never
 
 # 记录 pi 退出码，但保证提示始终显示
 pi_exit=0
