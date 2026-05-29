@@ -25,16 +25,16 @@ export function resolveConsequenceTool(params: RawConsequenceInput, sessionManag
   return textResult(text, details);
 }
 
-function formatValueChange(before: number | string, after: number | string, delta: number | undefined): string {
-  return `${String(before)} → ${String(after)}${formatDelta(delta)}`;
-}
-
-function formatDelta(delta: number | undefined): string {
+function formatValueChange(
+  before: number | string,
+  after: number | string,
+  delta: number | undefined,
+): string {
   if (delta === undefined) {
-    return "";
+    return `${String(before)} → ${String(after)}`;
   }
   const sign = delta >= 0 ? "+" : "";
-  return ` (${sign}${delta})`;
+  return `${String(before)} → ${String(after)} (${sign}${delta})`;
 }
 
 function uniqueHints(primary: string[], secondary: string[]): string[] {

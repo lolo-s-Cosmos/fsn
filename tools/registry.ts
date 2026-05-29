@@ -110,7 +110,7 @@ export function registerAllTools(pi: ExtensionAPI): void {
         },
       ),
       durationMinutes: Type.Union([Type.Integer(), Type.String()], {
-        description: "行动预计耗时，0-1440 分钟；可传整数或整数字符串",
+        description: "行动预计耗时，1-1440 分钟；可传整数或整数字符串",
       }),
       isPublic: Type.Boolean({ description: "是否可能被普通人、监控、组织记录或目击" }),
       involvesMystery: Type.Boolean({

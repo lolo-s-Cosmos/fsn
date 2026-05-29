@@ -107,7 +107,10 @@ function applyPressure(state: State, input: ConsequenceInput): StatEffect[] {
   const action = actionProfile(assertPressureAction(input.actionType));
   const risk = riskProfile(input.riskLevel);
   const activityKind = pressureActivityKind(input);
-  const durationFatigue = input.actionType === "日常" ? 0 : Math.floor(input.durationMinutes / 60);
+  const durationFatigue =
+    input.actionType === "日常"
+      ? Math.floor(input.durationMinutes / 120)
+      : Math.floor(input.durationMinutes / 60);
   const effects: StatEffect[] = [
     advanceTime(state, {
       minutes: input.durationMinutes,
@@ -120,9 +123,9 @@ function applyPressure(state: State, input: ConsequenceInput): StatEffect[] {
       action.manaStrain + (input.involvesMystery ? risk.manaStrain : 0),
       "魔力/神秘负担",
     ),
-    setDangerLevel(state, Math.max(action.danger, risk.danger), "当前场景危险度"),
+    setDangerLevel(state, Math.max(state.危险度, action.danger, risk.danger), "当前场景危险度"),
     ...applyPassiveRecovery(state, input, activityKind),
-    ...applyHighPressureDayPenalty(state),
+    ...applyHighPressureDayPenalty(state, activityKind === "高压行动" ? input.durationMinutes : 0),
   ];
   return compactEffects(effects);
 }
@@ -207,11 +210,7 @@ function applyRecovery(state: State, input: ConsequenceInput): StatEffect[] {
         adjustBody(state, Math.min(12, 3 + hours * 2), "魔力供给辅助身体恢复"),
         adjustFatigue(state, -Math.min(18, 4 + hours * 3), "魔力补充缓解疲劳"),
         adjustManaStrain(state, -Math.min(40, 12 + hours * 5), "外部魔力供给补充"),
-        setDangerLevel(
-          state,
-          input.involvesMystery ? Math.max(2, risk.danger) : risk.danger,
-          "补魔环境安全度",
-        ),
+        setDangerLevel(state, Math.max(2, risk.danger), "补魔环境安全度"),
       ]);
     case "安全屋整备":
       return compactEffects([
@@ -254,14 +253,17 @@ function applyPassiveRecovery(
   ]);
 }
 
-function applyHighPressureDayPenalty(state: State): StatEffect[] {
-  if (state.时间.当天高压分钟 >= EXTREME_PRESSURE_DAY_MINUTES) {
+function applyHighPressureDayPenalty(state: State, addedPressureMinutes: number): StatEffect[] {
+  const current = state.时间.当天高压分钟;
+  const before = current - addedPressureMinutes;
+
+  if (before < EXTREME_PRESSURE_DAY_MINUTES && current >= EXTREME_PRESSURE_DAY_MINUTES) {
     return compactEffects([
       adjustFatigue(state, 5, "长时间高压行动透支"),
       setDangerLevel(state, Math.max(3, state.危险度), "长时间高压导致局势恶化"),
     ]);
   }
-  if (state.时间.当天高压分钟 >= HIGH_PRESSURE_DAY_MINUTES) {
+  if (before < HIGH_PRESSURE_DAY_MINUTES && current >= HIGH_PRESSURE_DAY_MINUTES) {
     return compactEffects([adjustFatigue(state, 2, "持续高压行动积累疲劳")]);
   }
   return [];
@@ -283,8 +285,9 @@ function pressureActivityKind(input: ConsequenceInput): TimeActivityKind {
 
 function sleepBodyRecovery(minutes: number): number {
   if (minutes < 90) return 0;
-  if (minutes < 240) return 1;
-  if (minutes < 420) return 3;
+  if (minutes < 180) return 1;
+  if (minutes < 300) return 2;
+  if (minutes < 420) return 4;
   return 6;
 }
 
@@ -449,8 +452,8 @@ function assertRisk(value: unknown): ConsequenceRisk {
 
 function assertDuration(value: unknown): number {
   const duration = coerceInteger(value, "durationMinutes");
-  if (duration < 0 || duration > MAX_ACTION_MINUTES) {
-    throw new Error(`非法预计耗时分钟: ${duration}。必须在 0-${MAX_ACTION_MINUTES} 之间。`);
+  if (duration < 1 || duration > MAX_ACTION_MINUTES) {
+    throw new Error(`非法预计耗时分钟: ${duration}。必须在 1-${MAX_ACTION_MINUTES} 之间。`);
   }
   return duration;
 }
