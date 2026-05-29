@@ -3,6 +3,6 @@
     "npm:context-mode",
     "npm:@juicesharp/rpiv-ask-user-question",
     "npm:pi-claude-oauth-adapter",
-    "npm:@sting8k/pi-vcc"
+    "npm:pi-smart-compact"
   ]
 }
