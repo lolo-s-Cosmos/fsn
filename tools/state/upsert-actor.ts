@@ -1,3 +1,4 @@
+import type { ActorRegistryInput, PublicNpcInput } from "../../engine/core/actor";
 import type { PublicActorState } from "../../engine/core/state";
 
 import { upsertActor } from "../../engine/core/actor";
@@ -6,27 +7,45 @@ import { writeStateToDetails } from "../../engine/core/state";
 import { textResult, type ToolResult } from "../runtime/tool-result";
 
 export function upsertActorTool(params: unknown, sessionManager: unknown): ToolResult {
-  const result = upsertActor(assertUpsertActorParams(params));
+  const result = upsertActor(assertActorRegistryInput(params));
   persistCurrentState(sessionManager);
   const details: Record<string, unknown> = { result };
   writeStateToDetails(details);
   return textResult(result.message, details);
 }
 
-function assertUpsertActorParams(params: unknown): Parameters<typeof upsertActor>[0] {
+function assertActorRegistryInput(params: unknown): ActorRegistryInput {
   if (!isRecord(params)) {
     throw new Error("upsert_actor 参数必须是对象。");
   }
-  const actor = params["actor"];
-  if (!isRecord(actor)) {
-    throw new Error("actor 必须是对象。");
+  const kind = assertString(params["kind"], "kind");
+  switch (kind) {
+    case "setup-protagonist":
+      return {
+        kind,
+        actor: assertRecord(params["actor"], "actor") as unknown as PublicActorState,
+        present: params["present"] === true,
+        ally: params["ally"] === true,
+        reason: assertString(params["reason"], "reason"),
+      };
+    case "upsert-public-npc":
+      return {
+        kind,
+        npc: assertRecord(params["npc"], "npc") as unknown as PublicNpcInput,
+        present: params["present"] === true,
+        ally: params["ally"] === true,
+        reason: assertString(params["reason"], "reason"),
+      };
+    default:
+      throw new Error(`非法 upsert_actor.kind: ${kind}。`);
   }
-  return {
-    actor: actor as unknown as PublicActorState, // safe: upsertActor writes through state validation before committing.
-    present: params["present"] === true,
-    ally: params["ally"] === true,
-    reason: assertString(params["reason"], "reason"),
-  };
+}
+
+function assertRecord(value: unknown, fieldName: string): Record<string, unknown> {
+  if (!isRecord(value)) {
+    throw new Error(`${fieldName} 必须是对象。`);
+  }
+  return value;
 }
 
 function assertString(value: unknown, fieldName: string): string {

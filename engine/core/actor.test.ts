@@ -5,31 +5,22 @@ import { upsertActor } from "./actor";
 import { buildGmBrief } from "./gm-brief";
 import { getPublicState, resetState } from "./state";
 
-void test("upsertActor adds an entered NPC to actor registry and present actors", () => {
+void test("upsertActor adds an entered NPC from safe public projection", () => {
   resetState();
 
   const result = upsertActor({
-    actor: {
+    kind: "upsert-public-npc",
+    npc: {
       id: "tohsaka-rin",
       kind: "human",
-      roles: [{ kind: "social", label: "穗群原学园学生" }],
-      magecraft: null,
-      servantForm: null,
-      identity: {
-        publicIdentity: "远坂凛",
-        background: "玩家已知的穗群原学园学生。",
-        lockedFacts: [],
-      },
-      presentation: {
-        displayName: "远坂凛",
-        apparentAge: "十七岁左右",
-        outfit: { label: "穗群原学园制服", details: "红色外套与黑色长袜。" },
-        demeanor: "优等生式的从容。",
-      },
-      condition: { wounds: [], afflictions: [], permanentEffects: [] },
-      inventory: { ordinaryItems: [], heldTrackedItemIds: [] },
-      abilities: [],
+      displayName: "远坂凛",
+      publicIdentity: "穗群原学园二年A班学生，校内知名优等生。",
+      apparentAge: "十七岁左右",
+      outfit: { label: "穗群原学园制服", details: "红色外套与黑色长袜。" },
+      demeanor: "优等生式的从容。",
+      publicRoles: [{ kind: "social", label: "穗群原学园学生" }],
       relationshipToProtagonist: { stance: "friendly", summary: "同校学生。" },
+      ordinaryItems: [],
     },
     present: true,
     ally: false,
@@ -37,44 +28,45 @@ void test("upsertActor adds an entered NPC to actor registry and present actors"
   });
 
   const publicState = getPublicState();
-  assert.equal(result.message, "actor 已写入：tohsaka-rin。");
-  assert.equal(publicState.actors["tohsaka-rin"]?.presentation.displayName, "远坂凛");
+  const actor = publicState.actors["tohsaka-rin"];
+  assert.equal(result.message, "public npc 已写入：tohsaka-rin。");
+  assert.equal(actor?.presentation.displayName, "远坂凛");
+  assert.equal(actor?.magecraft, null);
+  assert.deepEqual(actor?.abilities, []);
+  assert.deepEqual(actor?.identity.lockedFacts, []);
   assert.ok(publicState.scene.presentActorIds.includes("tohsaka-rin"));
 });
 
-void test("upsertActor rejects hidden facts in public registry", () => {
+void test("upsertActor rejects non-protagonist setup", () => {
   resetState();
 
   assert.throws(
     () =>
       upsertActor({
+        kind: "setup-protagonist",
         actor: {
-          id: "matou-sakura",
+          id: "tohsaka-rin",
           kind: "human",
-          roles: [{ kind: "social", label: "穗群原学园一年级学生" }],
+          roles: [{ kind: "social", label: "穗群原学园学生" }],
           magecraft: null,
           servantForm: null,
-          identity: {
-            publicIdentity: "间桐樱",
-            background: "士郎所知的温和学妹。",
-            lockedFacts: [{ id: "hidden-sakura", text: "樱是 Rider 的真正御主。" }],
-          },
+          identity: { publicIdentity: "远坂凛", background: "测试", lockedFacts: [] },
           presentation: {
-            displayName: "间桐樱",
-            apparentAge: "15岁",
-            outfit: { label: "穗群原制服", details: "紫发紫瞳，穿女生制服。" },
-            demeanor: "安静温柔。",
+            displayName: "远坂凛",
+            apparentAge: "17岁",
+            outfit: { label: "制服", details: "测试" },
+            demeanor: "测试",
           },
           condition: { wounds: [], afflictions: [], permanentEffects: [] },
           inventory: { ordinaryItems: [], heldTrackedItemIds: [] },
           abilities: [],
-          relationshipToProtagonist: { stance: "friendly", summary: "学妹。" },
+          relationshipToProtagonist: { stance: "neutral", summary: "测试" },
         },
-        present: false,
-        ally: true,
-        reason: "Sakura appears in public tracking",
+        present: true,
+        ally: false,
+        reason: "测试",
       }),
-    /拒绝写入玩家未知幕后秘密/,
+    /setup-protagonist 只能写入 actor.id=protagonist/,
   );
 });
 
@@ -82,6 +74,7 @@ void test("upsertActor can replace protagonist setup skeleton", () => {
   resetState();
 
   upsertActor({
+    kind: "setup-protagonist",
     actor: {
       id: "protagonist",
       kind: "human",

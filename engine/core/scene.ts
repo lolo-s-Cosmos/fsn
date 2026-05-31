@@ -4,6 +4,7 @@ import type {
   SceneThreatId,
   SceneThreatSeverity,
   SituationKind,
+  StoryWindowState,
 } from "./state";
 
 import { Temporal } from "@js-temporal/polyfill";
@@ -13,6 +14,8 @@ import { assertNonEmptyString, assertNonNegativeInteger, createId, updateState }
 export type SceneEvent =
   | { kind: "move-location"; location: LocationState; elapsedMinutes: number; reason: string }
   | { kind: "set-situation"; situation: SituationKind; reason: string }
+  | { kind: "set-story-window"; storyWindow: StoryWindowState; reason: string }
+  | { kind: "clear-story-window"; reason: string }
   | { kind: "add-objective"; summary: string; reason: string }
   | { kind: "resolve-objective"; objectiveId: SceneObjectiveId; reason: string }
   | { kind: "add-threat"; summary: string; severity: SceneThreatSeverity; reason: string }
@@ -29,6 +32,10 @@ export function updateScene(event: SceneEvent): SceneEventResult {
       return moveLocation(event);
     case "set-situation":
       return setSituation(event);
+    case "set-story-window":
+      return setStoryWindow(event);
+    case "clear-story-window":
+      return clearStoryWindow();
     case "add-objective":
       return addObjective(event);
     case "resolve-objective":
@@ -60,6 +67,22 @@ function setSituation(event: Extract<SceneEvent, { kind: "set-situation" }>): Sc
     draft.public.scene.situation = event.situation;
   });
   return { message: `态势已更新为 ${event.situation}。` };
+}
+
+function setStoryWindow(
+  event: Extract<SceneEvent, { kind: "set-story-window" }>,
+): SceneEventResult {
+  updateState((draft) => {
+    draft.public.scene.storyWindow = event.storyWindow;
+  });
+  return { message: `剧情窗口已更新：${event.storyWindow.title}。` };
+}
+
+function clearStoryWindow(): SceneEventResult {
+  updateState((draft) => {
+    draft.public.scene.storyWindow = null;
+  });
+  return { message: "剧情窗口已清除。" };
 }
 
 function addObjective(event: Extract<SceneEvent, { kind: "add-objective" }>): SceneEventResult {

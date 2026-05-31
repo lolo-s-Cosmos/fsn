@@ -13,6 +13,13 @@
 - 圣杯战争基本框架：7 御主 × 7 从者，御主 3 划令咒，从者需供魔，真名暴露弱点，败退从者被圣杯回收。
 - 禁止混入跨作品力量体系、固有结界当普通技能、传统西幻式乱施法、随意爆星/无视因果。
 
+## 剧情窗口纪律
+
+- 复杂场景、潜入、侦察、撤退、战斗准备、major beat 开始时，必须用 `update_scene set-story-window` 锁定 currentArcId/currentBeatId、allowedActions、forbiddenEscalations、completionCriteria。
+- 当前回复不得越过 story window 的 forbiddenEscalations；要进入下一 beat，先满足 completionCriteria，再用 `clear-story-window` 或新的 `set-story-window` 切换边界。
+- 复杂行动必须拆成 2-5 个当前场景目标；每完成一项调用 `update_scene resolve-objective`。一条叙事压缩多个目标时，也必须逐项更新。
+- `get_status` 的剧情窗口是玩家可见边界；不要把 secret、幕后真相、未来战斗底牌写进 title、allowedActions 或 nextBeatHints。
+
 ## 状态纪律
 
 - Canonical state 分 public / secrets；普通叙事只能使用 public brief 和玩家可见工具结果。
@@ -33,6 +40,10 @@
 - 幕后事件不能原样展示；只有痕迹、传闻、梦境、异常行动、事后结果或 reveal 成功后的公开事实能进入玩家叙事。
 - 已发生剧情、承诺、发现、伤势、物品去向、关系变化不得靠模糊记忆补完；当前上下文不足时必须先查历史。
 - NPC 只能使用其实际经历、被告知或可合理推断的信息；GM 视角事实不能直接变成 NPC 台词或知识。
+- 普通临时道具、一次性消耗品、场景内损坏物不进入 `trackedItems`；只在当场叙事或必要 memory 中结算。只有跨场景持续影响选择、所有权、位置、战斗/潜入/reveal 的关键物才追踪。
+- 侦察、潜入、撤退、追踪、战斗准备不能只写“成功/失败”。至少落到两类可感知细节：地形阻力、装备处理、身体代价、魔力残留、声音/气味/温度变化、同伴动作配合。
+- 关系变化通过边界动作、回避、主动照顾、称呼变化、沉默或具体承诺表现；禁止裸写“好感上升/下降”。重大关系信号用 `record_memory record-major-event` 记录行为证据与后果。
+- 关键台词、咒文、称呼、宝具相关语句可少量使用日文原句 + 中文括注；普通叙事不要滥用双语，不得挤占行动结算与状态更新。
 
 ## 判定纪律
 

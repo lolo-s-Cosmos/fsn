@@ -11,5 +11,13 @@
       "unknown"
     ]
   },
-  "ignorePatterns": ["node_modules", "dist", "sessions", "state", ".pi/agent", ".pi/npm"]
+  "ignorePatterns": [
+    "node_modules",
+    "dist",
+    "sessions",
+    "state",
+    ".pi/agent",
+    ".pi/npm",
+    ".pi-lens"
+  ]
 }

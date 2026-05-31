@@ -19,6 +19,8 @@ export type ActorId = string;
 export type ItemId = string;
 export type SceneObjectiveId = string;
 export type SceneThreatId = string;
+export type StoryArcId = string;
+export type StoryBeatId = string;
 export type MemoryFactId = string;
 export type MajorEventMemoryId = string;
 export type DailySummaryMemoryId = string;
@@ -121,10 +123,21 @@ export interface ClockState {
 export interface SceneState {
   location: LocationState;
   situation: SituationKind;
+  storyWindow: StoryWindowState | null;
   presentActorIds: ActorId[];
   objectives: SceneObjective[];
   threats: SceneThreat[];
   lastResolvedAt: string;
+}
+
+export interface StoryWindowState {
+  currentArcId: StoryArcId;
+  currentBeatId: StoryBeatId;
+  title: string;
+  allowedActions: string[];
+  forbiddenEscalations: string[];
+  completionCriteria: string[];
+  nextBeatHints: string[];
 }
 
 export interface SceneObjective {
@@ -589,9 +602,10 @@ export function writeDebugStateFile(): string {
 }
 
 export function createId(prefix: string): string {
-  const id = `${prefix}-${nextIdCounter}`;
-  nextIdCounter += 1;
-  return id;
+  const idPrefix = assertNonEmptyString(prefix, "idPrefix");
+  const next = Math.max(nextIdCounter, highestExistingIdNumber(idPrefix) + 1);
+  nextIdCounter = next + 1;
+  return `${idPrefix}-${next}`;
 }
 
 export function assertPercent(value: unknown, fieldName: string): Percent {
@@ -670,6 +684,36 @@ function toStateExport(state: State): StateExport {
   };
 }
 
+function highestExistingIdNumber(prefix: string): number {
+  const marker = `${prefix}-`;
+  let highest = 0;
+  for (const id of collectIds(getStore())) {
+    if (!id.startsWith(marker)) continue;
+    const suffix = id.slice(marker.length);
+    if (!/^\d+$/.test(suffix)) continue;
+    highest = Math.max(highest, Number(suffix));
+  }
+  return highest;
+}
+
+function collectIds(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.flatMap((entry) => collectIds(entry));
+  }
+  if (!isRecord(value)) {
+    return [];
+  }
+  const ids: string[] = [];
+  const id = value["id"];
+  if (typeof id === "string") {
+    ids.push(id);
+  }
+  for (const entry of Object.values(value)) {
+    ids.push(...collectIds(entry));
+  }
+  return ids;
+}
+
 function createInitialState(): State {
   const now = nowIso();
   const protagonist = createInitialProtagonist();
@@ -701,6 +745,7 @@ function createInitialState(): State {
           boundary: "normal",
         },
         situation: "daily",
+        storyWindow: null,
         presentActorIds: [PROTAGONIST_ACTOR_ID],
         objectives: [],
         threats: [],
@@ -869,6 +914,7 @@ function assertSceneState(raw: unknown, actors: Record<ActorId, PublicActorState
   return {
     location: assertLocationState(raw["location"], "scene.location"),
     situation: assertOneOf(raw["situation"], SITUATIONS, "scene.situation"),
+    storyWindow: raw["storyWindow"] === null ? null : assertStoryWindowState(raw["storyWindow"]),
     presentActorIds,
     objectives: assertArray(raw["objectives"], "scene.objectives").map(assertSceneObjective),
     threats: assertArray(raw["threats"], "scene.threats").map(assertSceneThreat),
@@ -885,6 +931,27 @@ function assertLocationState(raw: unknown, fieldName: string): LocationState {
     site: assertNonEmptyString(raw["site"], `${fieldName}.site`),
     detail: assertNonEmptyString(raw["detail"], `${fieldName}.detail`),
     boundary: assertOneOf(raw["boundary"], BOUNDARIES, `${fieldName}.boundary`),
+  };
+}
+
+function assertStoryWindowState(raw: unknown): StoryWindowState {
+  if (!isRecord(raw)) {
+    throw new Error(`非法 story window: ${formatUnknown(raw)}。`);
+  }
+  return {
+    currentArcId: assertNonEmptyString(raw["currentArcId"], "storyWindow.currentArcId"),
+    currentBeatId: assertNonEmptyString(raw["currentBeatId"], "storyWindow.currentBeatId"),
+    title: assertNonEmptyString(raw["title"], "storyWindow.title"),
+    allowedActions: assertStringArray(raw["allowedActions"], "storyWindow.allowedActions"),
+    forbiddenEscalations: assertStringArray(
+      raw["forbiddenEscalations"],
+      "storyWindow.forbiddenEscalations",
+    ),
+    completionCriteria: assertStringArray(
+      raw["completionCriteria"],
+      "storyWindow.completionCriteria",
+    ),
+    nextBeatHints: assertStringArray(raw["nextBeatHints"], "storyWindow.nextBeatHints"),
   };
 }
 

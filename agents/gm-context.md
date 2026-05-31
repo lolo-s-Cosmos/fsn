@@ -4,22 +4,60 @@
 
 ## 工具速查
 
-| 工具                     | 用途                           | 何时调用                                               |
-| ------------------------ | ------------------------------ | ------------------------------------------------------ |
-| `get_status`             | 玩家可见状态摘要 / GM brief    | 需要确认时间、地点、资源、伤势、目标、威胁、记忆       |
-| `update_scene`           | 时间、地点、态势、目标、威胁   | 移动、时间推进、场景切换、当前目标/威胁变化            |
-| `update_actor_condition` | 伤势、异常、长期影响、装备呈现 | actor 受伤、诅咒、换装、重要物品转移                   |
-| `update_servant_form`    | 从者魔力、灵核、契约、参数修正 | 供魔、灵核伤、契约变化、临时强化、永久缺损             |
-| `update_economy`         | JPY 资金、账户、债务           | 消费、获得资金、食宿/装备/服务/情报交易                |
-| `record_memory`          | 长期事实、重大事件、日常摘要   | 身世、契约、死亡/失踪/重伤、真名、宝具、阵营、跳时     |
-| `reveal_secret`          | 玩家可见证据触发秘密揭示       | 真名/宝具/隐藏身份从线索升级为公开事实                 |
-| `private_resolve`        | 隐藏事实参与的窄口私密结算     | NPC 隐藏反应、隐藏相性；只返回玩家安全约束             |
-| `record_offscreen_event` | 幕后事件 / 平行线结果落地      | subagent 返回 offscreen 候选；只写 secret/foreshadowed |
-| `lookup`                 | 查询角色/地点/概念/时间线      | 涉及任何预设设定时必须调用                             |
+| 工具                     | 用途                                   | 何时调用                                               |
+| ------------------------ | -------------------------------------- | ------------------------------------------------------ |
+| `get_status`             | 玩家可见状态摘要 / GM brief            | 需要确认时间、地点、资源、伤势、目标、威胁、记忆       |
+| `update_scene`           | 时间、地点、态势、剧情窗口、目标、威胁 | 移动、时间推进、场景切换、beat 边界、当前目标/威胁变化 |
+| `update_actor_condition` | 伤势、异常、长期影响、装备呈现         | actor 受伤、诅咒、换装、重要物品转移                   |
+| `update_servant_form`    | 从者魔力、灵核、契约、参数修正         | 供魔、灵核伤、契约变化、临时强化、永久缺损             |
+| `update_economy`         | JPY 资金、账户、债务                   | 消费、获得资金、食宿/装备/服务/情报交易                |
+| `record_memory`          | 长期事实、重大事件、日常摘要           | 身世、契约、死亡/失踪/重伤、真名、宝具、阵营、跳时     |
+| `reveal_secret`          | 玩家可见证据触发秘密揭示               | 真名/宝具/隐藏身份从线索升级为公开事实                 |
+| `private_resolve`        | 隐藏事实参与的窄口私密结算             | NPC 隐藏反应、隐藏相性；只返回玩家安全约束             |
+| `record_offscreen_event` | 幕后事件 / 平行线结果落地              | subagent 返回 offscreen 候选；只写 secret/foreshadowed |
+| `lookup`                 | 查询角色/地点/概念/时间线              | 涉及任何预设设定时必须调用                             |
 
 Debug-only：`patch_state` 已禁用常规裸 patch；`get_state_schema`、`export_state`、`override_locked_fact`、`reset_state` 只用于开发/修档。
 
 可以即兴创作路人细节，但不能改写预设事实。短对话、短观察、几分钟生活细节不必额外调用工具。10 分钟以上低风险过渡用 `update_scene` 推进时间；高风险、恢复、睡眠、治疗、补魔还要同步调用对应 actor / servant / economy / memory 工具记录代价。
+
+## 物品追踪边界
+
+不要把普通库存管理塞进 state。以下物品只在当场叙事或必要 memory 中结算，不进 `trackedItems`：便当、绷带、电池、雨衣、普通工具、临时木棍、一次性临时护具、普通衣物破损。
+
+只有满足任一条件才追踪为关键物：
+
+- 跨 3 回合以上持续存在，并会影响选择。
+- 所有权或位置本身重要。
+- 损坏/消耗状态会影响战斗、潜入、结界、reveal 或交易。
+- 是证据、圣遗物、魔术礼装、宝石、符纸、令咒相关载体。
+- 玩家明确说要保留、携带、改造或研究。
+
+## 剧情窗口模板
+
+进入复杂 beat 时先写剧情窗口，再拆目标：
+
+```txt
+update_scene set-story-window:
+currentArcId: B2
+currentBeatId: ryudou-scouting-wrapup
+title: 柳洞寺侦察收尾
+allowedActions:
+- 完成北侧断崖结界确认
+- 发送撤退信号
+- 与另一队汇合
+- 安全撤回卫宫宅
+forbiddenEscalations:
+- 不得触发佐佐木小次郎正面战
+- 不得公开美狄亚全部底牌
+completionCriteria:
+- 四人安全撤回
+- 结界结构被玩家侧记录
+nextBeatHints:
+- 回宅后整理战术问题
+```
+
+随后用 `add-objective` 建 2-5 个当前目标。每完成一项 `resolve-objective`，不要把长期目标留在 scene。
 
 ## 平行线 Subagent
 

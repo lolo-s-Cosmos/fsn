@@ -42,19 +42,23 @@ export function registerAllTools(pi: ExtensionAPI): void {
     label: toolLabel,
     name: "update_scene",
     description:
-      "按领域事件更新时间、地点、场景态势、目标、威胁。\n\n" +
+      "按领域事件更新时间、地点、场景态势、剧情窗口、目标、威胁。\n\n" +
       "【必须调用的场景】\n" +
       "- 玩家移动地点或时间推进\n" +
       "- 场景态势切换为日常、调查、社交、战斗、仪式、逃跑、整备\n" +
+      "- 复杂场景进入新 beat，需要锁定 allowedActions、forbiddenEscalations、completionCriteria\n" +
       "- 新增/解决当前场景目标，或新增/清除即时威胁\n\n" +
       "【严禁的行为】\n" +
       "- 用叙事直接跳过时间或改变地点但不调用工具\n" +
+      "- 越过当前 storyWindow.forbiddenEscalations 或未满足 completionCriteria 就提前进入下一战斗\n" +
       "- 在场 NPC 尚未写入 actor registry 时调用 private_resolve 或把 actorId 编出来\n" +
       "- 把长期目标塞进 scene；场景结束后应写入 memory",
     parameters: Type.Object({
       kind: Type.Union([
         Type.Literal("move-location"),
         Type.Literal("set-situation"),
+        Type.Literal("set-story-window"),
+        Type.Literal("clear-story-window"),
         Type.Literal("add-objective"),
         Type.Literal("resolve-objective"),
         Type.Literal("add-threat"),
@@ -63,6 +67,19 @@ export function registerAllTools(pi: ExtensionAPI): void {
       location: Type.Optional(locationSchema()),
       elapsedMinutes: Type.Optional(Type.Union([Type.Integer(), Type.String()])),
       situation: Type.Optional(situationSchema()),
+      storyWindow: Type.Optional(
+        Type.Object({
+          currentArcId: Type.String({ description: "当前 arc id，如 B2" }),
+          currentBeatId: Type.String({ description: "当前 beat id，如 ryudou-scouting-wrapup" }),
+          title: Type.String({ description: "玩家可见剧情窗口标题" }),
+          allowedActions: Type.Array(Type.String({ description: "本 beat 允许推进的行动边界" })),
+          forbiddenEscalations: Type.Array(
+            Type.String({ description: "本 beat 禁止提前触发或公开的升级" }),
+          ),
+          completionCriteria: Type.Array(Type.String({ description: "本 beat 完成条件" })),
+          nextBeatHints: Type.Array(Type.String({ description: "不泄密的后续问题或钩子" })),
+        }),
+      ),
       summary: Type.Optional(
         Type.String({ description: "add-objective/add-threat 必填：目标或威胁的玩家可见摘要" }),
       ),
@@ -152,16 +169,21 @@ export function registerAllTools(pi: ExtensionAPI): void {
       "更新 actor 的伤势、异常、长期影响、外观装备，或转移 tracked item。\n\n" +
       "【必须调用的场景】\n" +
       "- 玩家或已入场 actor 受伤、感染、诅咒、获得永久影响\n" +
+      "- 伤势/异常状态已自然恢复或稳定，需要从当前状态中移除\n" +
       "- 更换外观/装备呈现\n" +
-      "- 重要物品跨 actor 转移\n\n" +
+      "- 重要物品跨 actor 转移\n" +
+      "- 人类或其他非从者 actor 的魔术回路状态、Od、纪律或隶属需要更新\n\n" +
       "【严禁的行为】\n" +
       "- 改写锁定身份事实、真名或基础参数\n" +
-      "- 用通用 HP 百分比替代离散伤势",
+      "- 用通用 HP 百分比替代离散伤势\n" +
+      "- 叙事声称人类魔力/Od 已消耗或恢复，却不更新 actor.magecraft.circuits.od/status",
     parameters: Type.Object({
       kind: Type.Union([
         Type.Literal("add-wound"),
         Type.Literal("add-affliction"),
         Type.Literal("add-permanent-effect"),
+        Type.Literal("update-magecraft-circuits"),
+        Type.Literal("resolve-condition"),
         Type.Literal("change-outfit"),
         Type.Literal("transfer-tracked-item"),
       ]),
@@ -179,6 +201,21 @@ export function registerAllTools(pi: ExtensionAPI): void {
       recoverable: Type.Optional(Type.Boolean()),
       expectedDuration: Type.Optional(Type.Union([Type.String(), Type.Null()])),
       mechanicalEffect: Type.Optional(Type.String()),
+      circuits: Type.Optional(
+        Type.Object({
+          count: Type.String({ description: "魔术回路数量摘要，如 27" }),
+          quality: Type.String({ description: "Fate rank 或 none" }),
+          od: Type.Integer({ description: "0-100 的内部 Od / 人类魔力余量" }),
+          status: Type.Union([
+            Type.Literal("normal"),
+            Type.Literal("overheated"),
+            Type.Literal("depleted"),
+            Type.Literal("dormant"),
+            Type.Literal("damaged"),
+          ]),
+          traits: Type.Array(Type.String()),
+        }),
+      ),
       outfit: Type.Optional(
         Type.Object({
           label: Type.String({ description: "外观/服装标签" }),
@@ -187,6 +224,9 @@ export function registerAllTools(pi: ExtensionAPI): void {
       ),
       itemId: Type.Optional(Type.String()),
       holderActorId: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+      conditionKind: Type.Optional(Type.Union([Type.Literal("wound"), Type.Literal("affliction")])),
+      conditionId: Type.Optional(Type.String()),
+      outcome: Type.Optional(Type.Union([Type.Literal("recovered"), Type.Literal("stabilized")])),
       reason: Type.Optional(Type.String()),
     }),
     execute: async (_toolCallId, params, _signal, _onUpdate, ctx) =>
@@ -197,17 +237,20 @@ export function registerAllTools(pi: ExtensionAPI): void {
     label: toolLabel,
     name: "upsert_actor",
     description:
-      "将已入场或需要追踪的 public actor 写入本局 actor registry；可同步标记在场/同盟。\n\n" +
+      "将 protagonist setup 或玩家可见 NPC 摘要写入 public actor registry；NPC 只能写玩家已知外观/身份/关系，不接受魔术、真名、宝具、私密动机等字段。\n\n" +
       "【必须调用的场景】\n" +
-      "- 预设角色或重要 NPC 正式入场，且后续需要被 scene、memory、private_resolve 或关系状态引用\n" +
-      "- 开局 setup 已确认玩家角色身份/魔术回路/能力后，用 actor.id=protagonist 覆盖初始占位 skeleton\n" +
+      "- 重要 NPC 正式入场，且后续需要被 scene、memory、private_resolve 或关系状态引用：使用 kind=upsert-public-npc\n" +
+      "- 开局 setup 已确认玩家角色身份/魔术回路/能力后，用 kind=setup-protagonist 覆盖初始占位 skeleton\n" +
       "- 玩家与 NPC 建立同盟、敌对、契约、伤势、死亡、真名揭示等可追踪关系\n\n" +
       "【严禁的行为】\n" +
+      "- 对 NPC 传完整 canonical actor；NPC 入场只传 npc 窄字段\n" +
       "- 把世界角色数据库全量塞进 state；只写本局需要追踪的 actor\n" +
       "- 写入玩家未知幕后真相；隐藏事实必须放 secrets/debug 路径\n" +
-      "- 在 public actor 的 lockedFacts/background 中写玩家未知秘密，如真名、隐藏身份、幕后御主权或私密动机；这些不是公开状态",
+      "- 在 public NPC 中写魔术、真名、宝具、隐藏身份、御主身份、幕后动机或秘密能力",
     parameters: Type.Object({
-      actor: publicActorSchema(),
+      kind: Type.Union([Type.Literal("setup-protagonist"), Type.Literal("upsert-public-npc")]),
+      actor: Type.Optional(publicActorSchema()),
+      npc: Type.Optional(publicNpcSchema()),
       present: Type.Boolean({ description: "是否加入当前 scene.presentActorIds" }),
       ally: Type.Boolean({ description: "是否加入 allyActorIds" }),
       reason: Type.String(),
@@ -422,6 +465,46 @@ export function registerAllTools(pi: ExtensionAPI): void {
     description: "【调试工具】将当前内存状态导出到 state/state.json。严禁把 secrets 泄露给玩家。",
     parameters: Type.Object({}),
     execute: async () => exportStateTool(),
+  });
+}
+
+function publicNpcSchema(): ReturnType<typeof Type.Object> {
+  return Type.Object({
+    id: Type.String(),
+    kind: Type.Union([
+      Type.Literal("human"),
+      Type.Literal("outsider"),
+      Type.Literal("spirit"),
+      Type.Literal("other"),
+    ]),
+    displayName: Type.String({ description: "玩家可见称呼/姓名" }),
+    publicIdentity: Type.String({ description: "玩家当前可知身份摘要；不得写隐藏身份" }),
+    apparentAge: Type.String(),
+    outfit: Type.Object({ label: Type.String(), details: Type.String() }),
+    demeanor: Type.String({ description: "玩家可见举止；不得写私密动机" }),
+    publicRoles: Type.Array(
+      Type.Union([
+        Type.Object({ kind: Type.Literal("social"), label: Type.String() }),
+        Type.Object({
+          kind: Type.Literal("faction"),
+          factionId: Type.String(),
+          label: Type.String(),
+        }),
+      ]),
+    ),
+    relationshipToProtagonist: Type.Object({
+      stance: Type.Union([
+        Type.Literal("self"),
+        Type.Literal("ally"),
+        Type.Literal("friendly"),
+        Type.Literal("neutral"),
+        Type.Literal("wary"),
+        Type.Literal("hostile"),
+        Type.Literal("unknown"),
+      ]),
+      summary: Type.String(),
+    }),
+    ordinaryItems: Type.Array(Type.String()),
   });
 }
 

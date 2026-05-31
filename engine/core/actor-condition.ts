@@ -1,4 +1,11 @@
-import type { ActorId, ItemId, OutfitState, PermanentEffect, WoundSeverity } from "./state";
+import type {
+  ActorId,
+  ItemId,
+  MagecraftCircuitState,
+  OutfitState,
+  PermanentEffect,
+  WoundSeverity,
+} from "./state";
 
 import { assertNonEmptyString, createId, updateState } from "./state";
 
@@ -25,6 +32,20 @@ export type ActorConditionEvent =
       source: string;
       mechanicalEffect: string;
     }
+  | {
+      kind: "update-magecraft-circuits";
+      actorId: ActorId;
+      circuits: MagecraftCircuitState;
+      reason: string;
+    }
+  | {
+      kind: "resolve-condition";
+      actorId: ActorId;
+      conditionKind: "wound" | "affliction";
+      conditionId: string;
+      outcome: "recovered" | "stabilized";
+      reason: string;
+    }
   | { kind: "change-outfit"; actorId: ActorId; outfit: OutfitState; reason: string }
   | {
       kind: "transfer-tracked-item";
@@ -45,6 +66,10 @@ export function updateActorCondition(event: ActorConditionEvent): ActorCondition
       return addAffliction(event);
     case "add-permanent-effect":
       return addPermanentEffect(event);
+    case "update-magecraft-circuits":
+      return updateMagecraftCircuits(event);
+    case "resolve-condition":
+      return resolveCondition(event);
     case "change-outfit":
       return changeOutfit(event);
     case "transfer-tracked-item":
@@ -111,6 +136,67 @@ function addPermanentEffect(
     actor.condition.permanentEffects.push(effect);
   });
   return { message: "长期影响已记录。" };
+}
+
+function updateMagecraftCircuits(
+  event: Extract<ActorConditionEvent, { kind: "update-magecraft-circuits" }>,
+): ActorConditionEventResult {
+  assertNonEmptyString(event.reason, "reason");
+  updateState((draft) => {
+    const actor = draft.public.actors[event.actorId];
+    if (actor === undefined) {
+      throw new Error(`actor 不存在: ${event.actorId}`);
+    }
+    if (actor.magecraft === null) {
+      throw new Error(`actor 没有 magecraft: ${event.actorId}`);
+    }
+    actor.magecraft.circuits = event.circuits;
+  });
+  return { message: "魔术回路状态已更新。" };
+}
+
+function resolveCondition(
+  event: Extract<ActorConditionEvent, { kind: "resolve-condition" }>,
+): ActorConditionEventResult {
+  assertNonEmptyString(event.reason, "reason");
+  updateState((draft) => {
+    const actor = draft.public.actors[event.actorId];
+    if (actor === undefined) {
+      throw new Error(`actor 不存在: ${event.actorId}`);
+    }
+    switch (event.conditionKind) {
+      case "wound":
+        actor.condition.wounds = removeCondition(
+          actor.condition.wounds,
+          event.conditionId,
+          "wound",
+        );
+        break;
+      case "affliction":
+        actor.condition.afflictions = removeCondition(
+          actor.condition.afflictions,
+          event.conditionId,
+          "affliction",
+        );
+        break;
+      default:
+        throw new Error("unreachable condition kind");
+    }
+  });
+  return { message: `状态已处理：${event.conditionId} (${event.outcome})。` };
+}
+
+function removeCondition<TCondition extends { id: string }>(
+  conditions: TCondition[],
+  conditionId: string,
+  conditionKind: string,
+): TCondition[] {
+  const id = assertNonEmptyString(conditionId, "conditionId");
+  const next = conditions.filter((condition) => condition.id !== id);
+  if (next.length === conditions.length) {
+    throw new Error(`${conditionKind} 不存在: ${id}`);
+  }
+  return next;
 }
 
 function changeOutfit(

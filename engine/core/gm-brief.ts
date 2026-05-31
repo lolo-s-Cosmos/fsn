@@ -13,6 +13,7 @@ export function buildGmBrief(publicState: PublicGameState): string {
     `时间：${time.display}`,
     `地点：${formatLocation(publicState.scene.location)}`,
     `态势：${publicState.scene.situation}`,
+    `剧情窗口：${formatStoryWindow(publicState)}`,
     `玩家角色：${formatActorLine(protagonist)}`,
     `同行者：${formatAllies(publicState)}`,
     `资源：${formatFunds(publicState)}`,
@@ -27,6 +28,19 @@ export function buildGmBrief(publicState: PublicGameState): string {
 function formatLocation(location: PublicGameState["scene"]["location"]): string {
   const boundary = location.boundary === "normal" ? "" : `（${location.boundary}）`;
   return `${location.region} · ${location.site} · ${location.detail}${boundary}`;
+}
+
+function formatStoryWindow(publicState: PublicGameState): string {
+  const window = publicState.scene.storyWindow;
+  if (window === null) {
+    return "未设定；复杂场景应先用 update_scene set-story-window 锁定 beat 边界";
+  }
+  const allowed = window.allowedActions.length === 0 ? "未列出" : window.allowedActions.join("、");
+  const forbidden =
+    window.forbiddenEscalations.length === 0 ? "未列出" : window.forbiddenEscalations.join("、");
+  const criteria =
+    window.completionCriteria.length === 0 ? "未列出" : window.completionCriteria.join("、");
+  return `${window.currentArcId}/${window.currentBeatId}《${window.title}》；允许：${allowed}；禁区：${forbidden}；完成：${criteria}`;
 }
 
 function formatActorLine(actor: NonNullable<PublicGameState["actors"][string]>): string {

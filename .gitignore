@@ -5,6 +5,7 @@
 # Pi isolation (auto-generated on first run)
 .pi/agent/
 .pi/npm/
+.pi-lens/
 
 # Build / deps
 node_modules/
