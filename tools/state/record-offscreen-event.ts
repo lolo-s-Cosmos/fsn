@@ -1,8 +1,5 @@
-import type {
-  OffscreenEventSource,
-  OffscreenEventVisibility,
-  RecordOffscreenEventInput,
-} from "../../engine/core/offscreen-event";
+import type { RecordOffscreenEventInput } from "../../engine/core/offscreen-event";
+import type { OffscreenEventSource, OffscreenEventVisibility } from "../../engine/core/state";
 
 import { recordOffscreenEvent } from "../../engine/core/offscreen-event";
 import { persistCurrentState } from "../../engine/core/state-persistence";
