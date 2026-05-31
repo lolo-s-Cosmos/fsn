@@ -31,8 +31,9 @@ function formatLocation(location: PublicGameState["scene"]["location"]): string 
 
 function formatActorLine(actor: NonNullable<PublicGameState["actors"][string]>): string {
   const servant = actor.servantForm;
+  const identity = formatIdentity(actor);
   if (servant === null) {
-    return `${actor.presentation.displayName} / ${actor.kind} / ${actor.identity.publicIdentity}`;
+    return `${actor.presentation.displayName} / ${actor.kind} / ${identity}`;
   }
   return [
     actor.presentation.displayName,
@@ -43,6 +44,11 @@ function formatActorLine(actor: NonNullable<PublicGameState["actors"][string]>):
     `魔力${resourceBand(servant.condition.mana.value)}`,
     `契约${servant.contract.status}`,
   ].join(" / ");
+}
+
+function formatIdentity(actor: NonNullable<PublicGameState["actors"][string]>): string {
+  const memoryIdentity = actor.identity.lockedFacts.find((fact) => fact.id === "setup-identity");
+  return memoryIdentity?.text ?? actor.identity.publicIdentity;
 }
 
 function formatAllies(publicState: PublicGameState): string {

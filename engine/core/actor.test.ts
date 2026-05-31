@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { upsertActor } from "./actor";
+import { buildGmBrief } from "./gm-brief";
 import { getPublicState, resetState } from "./state";
 
 void test("upsertActor adds an entered NPC to actor registry and present actors", () => {
@@ -39,4 +40,50 @@ void test("upsertActor adds an entered NPC to actor registry and present actors"
   assert.equal(result.message, "actor 已写入：tohsaka-rin。");
   assert.equal(publicState.actors["tohsaka-rin"]?.presentation.displayName, "远坂凛");
   assert.ok(publicState.scene.presentActorIds.includes("tohsaka-rin"));
+});
+
+void test("upsertActor can replace protagonist setup skeleton", () => {
+  resetState();
+
+  upsertActor({
+    actor: {
+      id: "protagonist",
+      kind: "human",
+      roles: [{ kind: "social", label: "穗群原学园学生" }],
+      magecraft: {
+        circuits: { count: "27", quality: "E", od: 40, status: "normal", traits: [] },
+        disciplines: [
+          { name: "强化", rank: "E", notes: "可强化物体结构。" },
+          { name: "投影", rank: "E-", notes: "基础投影，稳定性低。" },
+        ],
+        affiliation: null,
+      },
+      servantForm: null,
+      identity: {
+        publicIdentity: "卫宫士郎",
+        background: "穗群原学园二年级学生，独居于深山镇卫宫邸。",
+        lockedFacts: [{ id: "setup-identity", text: "卫宫士郎" }],
+      },
+      presentation: {
+        displayName: "卫宫士郎",
+        apparentAge: "17岁",
+        outfit: { label: "穗群原学园制服", details: "冬季制服。" },
+        demeanor: "固执且容易主动帮忙。",
+      },
+      condition: { wounds: [], afflictions: [], permanentEffects: [] },
+      inventory: { ordinaryItems: [], heldTrackedItemIds: [] },
+      abilities: [
+        { id: "reinforcement", label: "强化魔术", summary: "强化物体结构。" },
+        { id: "projection", label: "投影魔术", summary: "基础投影。" },
+      ],
+      relationshipToProtagonist: { stance: "self", summary: "玩家本人。" },
+    },
+    present: true,
+    ally: false,
+    reason: "setup confirmed protagonist identity",
+  });
+
+  const publicState = getPublicState();
+  assert.equal(publicState.actors.protagonist?.identity.publicIdentity, "卫宫士郎");
+  assert.match(buildGmBrief(publicState), /玩家角色：卫宫士郎 \/ human \/ 卫宫士郎/);
 });

@@ -166,6 +166,7 @@ export function registerAllTools(pi: ExtensionAPI): void {
       "将已入场或需要追踪的 public actor 写入本局 actor registry；可同步标记在场/同盟。\n\n" +
       "【必须调用的场景】\n" +
       "- 预设角色或重要 NPC 正式入场，且后续需要被 scene、memory、private_resolve 或关系状态引用\n" +
+      "- 开局 setup 已确认玩家角色身份/魔术回路/能力后，用 actor.id=protagonist 覆盖初始占位 skeleton\n" +
       "- 玩家与 NPC 建立同盟、敌对、契约、伤势、死亡、真名揭示等可追踪关系\n\n" +
       "【严禁的行为】\n" +
       "- 把世界角色数据库全量塞进 state；只写本局需要追踪的 actor\n" +
@@ -198,7 +199,9 @@ export function registerAllTools(pi: ExtensionAPI): void {
         Type.Literal("add-purse"),
         Type.Literal("add-debt"),
       ]),
-      purseId: Type.Optional(Type.String()),
+      purseId: Type.Optional(
+        Type.String({ description: "资金账户 id；不确定时必须先调用 get_status 查看账户列表" }),
+      ),
       ownerActorId: Type.Optional(Type.String()),
       debtorActorId: Type.Optional(Type.String()),
       creditor: Type.Optional(Type.String()),
@@ -231,19 +234,15 @@ export function registerAllTools(pi: ExtensionAPI): void {
       "- 改写已确立职阶、真名、基础参数或宝具\n" +
       "- 临场新增宝具或把资源写成免费恢复",
     parameters: Type.Object({
-      kind: Type.Union([
-        Type.Literal("spend-mana"),
-        Type.Literal("restore-mana"),
-        Type.Literal("damage-spiritual-core"),
-        Type.Literal("add-param-modifier"),
-        Type.Literal("change-contract"),
-        Type.Literal("add-permanent-defect"),
-      ]),
+      kind: Type.String({
+        description:
+          "允许: spend-mana, restore-mana, damage-spiritual-core, add-param-modifier, change-contract, add-permanent-defect。锁定字段不可用本工具修改。",
+      }),
       actorId: Type.String(),
       amount: Type.Optional(Type.Union([Type.Integer(), Type.String()])),
-      modifier: Type.Optional(Type.Unknown()),
-      contract: Type.Optional(Type.Unknown()),
-      defect: Type.Optional(Type.Unknown()),
+      modifier: Type.Optional(paramModifierSchema()),
+      contract: Type.Optional(servantContractSchema()),
+      defect: Type.Optional(permanentDefectSchema()),
       reason: Type.String(),
     }),
     execute: async (_toolCallId, params, _signal, _onUpdate, ctx) =>
@@ -498,30 +497,9 @@ function servantFormSchema(): ReturnType<typeof Type.Object> {
       spiritualCore: Type.Object({ value: Type.Integer({ description: "0-100" }) }),
       mana: Type.Object({ value: Type.Integer({ description: "0-100" }) }),
       spiritualCondition: Type.String(),
-      permanentDefects: Type.Array(
-        Type.Object({
-          id: Type.String(),
-          source: Type.String(),
-          text: Type.String(),
-          mechanicalEffect: Type.String(),
-        }),
-      ),
+      permanentDefects: Type.Array(permanentDefectSchema()),
     }),
-    contract: Type.Object({
-      masterActorId: Type.Union([Type.String(), Type.Null()]),
-      masterName: Type.Union([Type.String(), Type.Null()]),
-      status: Type.Union([
-        Type.Literal("stable"),
-        Type.Literal("weak"),
-        Type.Literal("cut"),
-        Type.Literal("masterless"),
-      ]),
-      manaSupply: Type.Union([
-        Type.Literal("sufficient"),
-        Type.Literal("strained"),
-        Type.Literal("starved"),
-      ]),
-    }),
+    contract: servantContractSchema(),
     parameters: Type.Object({
       base: Type.Object({
         strength: Type.String(),
@@ -531,15 +509,7 @@ function servantFormSchema(): ReturnType<typeof Type.Object> {
         luck: Type.String(),
         noblePhantasm: Type.String(),
       }),
-      modifiers: Type.Array(
-        Type.Object({
-          id: Type.String(),
-          source: Type.String(),
-          affectedParams: Type.Array(Type.String()),
-          summary: Type.String(),
-          expiresAt: Type.Union([Type.String(), Type.Null()]),
-        }),
-      ),
+      modifiers: Type.Array(paramModifierSchema()),
       baseLocked: Type.Literal(true),
     }),
     skills: Type.Object({
@@ -564,6 +534,52 @@ function servantFormSchema(): ReturnType<typeof Type.Object> {
       }),
     ),
     currentOrder: Type.String(),
+  });
+}
+
+function servantContractSchema(): ReturnType<typeof Type.Object> {
+  return Type.Object({
+    masterActorId: Type.Union([Type.String(), Type.Null()]),
+    masterName: Type.Union([Type.String(), Type.Null()]),
+    status: Type.Union([
+      Type.Literal("stable"),
+      Type.Literal("weak"),
+      Type.Literal("cut"),
+      Type.Literal("masterless"),
+    ]),
+    manaSupply: Type.Union([
+      Type.Literal("sufficient"),
+      Type.Literal("strained"),
+      Type.Literal("starved"),
+    ]),
+  });
+}
+
+function paramModifierSchema(): ReturnType<typeof Type.Object> {
+  return Type.Object({
+    id: Type.Optional(Type.String()),
+    source: Type.String(),
+    affectedParams: Type.Array(
+      Type.Union([
+        Type.Literal("strength"),
+        Type.Literal("endurance"),
+        Type.Literal("agility"),
+        Type.Literal("mana"),
+        Type.Literal("luck"),
+        Type.Literal("noblePhantasm"),
+      ]),
+    ),
+    summary: Type.String(),
+    expiresAt: Type.Union([Type.String(), Type.Null()]),
+  });
+}
+
+function permanentDefectSchema(): ReturnType<typeof Type.Object> {
+  return Type.Object({
+    id: Type.Optional(Type.String()),
+    source: Type.String(),
+    text: Type.String(),
+    mechanicalEffect: Type.String(),
   });
 }
 
