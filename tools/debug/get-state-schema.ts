@@ -7,7 +7,17 @@ export function getStateSchemaTool(): ToolResult {
     root: "GameState { meta, public, secrets }",
     publicAggregates: ["campaign", "clock", "scene", "actors", "trackedItems", "economy", "memory"],
     secretBoundary: "普通工具只读写 public；secrets 仅供 private/reveal/debug 路径使用。",
-    regularTools: ["get_status", "update_scene", "record_memory"],
+    regularTools: [
+      "get_status",
+      "update_scene",
+      "record_memory",
+      "upsert_actor",
+      "update_actor_condition",
+      "update_economy",
+      "update_servant_form",
+      "reveal_secret",
+      "private_resolve",
+    ],
     debugOnly: ["export_state", "get_state_schema", "patch_state"],
     forbidden: "常规玩法禁止 raw JSON Patch；必须使用领域事件工具。",
   };

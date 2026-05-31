@@ -26,5 +26,20 @@ function formatResult(params: MemoryEvent, result: MemoryEventResult): string {
 }
 
 function assertMemoryEvent(params: unknown): MemoryEvent {
-  return params as MemoryEvent; // safe: recordMemory narrows and validates required fields by event kind before mutation.
+  if (!isRecord(params)) {
+    throw new Error("record_memory 参数必须是对象。");
+  }
+  if (params["kind"] !== "pin-fact") {
+    return params as MemoryEvent; // safe: recordMemory narrows and validates required fields by event kind before mutation.
+  }
+  const rawSourceEventId = params["sourceEventId"];
+  const sourceEventId =
+    typeof rawSourceEventId === "string" && rawSourceEventId.trim().length > 0
+      ? rawSourceEventId
+      : null;
+  return { ...params, sourceEventId } as MemoryEvent; // safe: normalized boundary value; engine validates remaining fields.
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

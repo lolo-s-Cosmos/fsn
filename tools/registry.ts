@@ -17,6 +17,7 @@ import { updateActorConditionTool } from "./state/update-actor-condition";
 import { updateEconomyTool } from "./state/update-economy";
 import { updateSceneTool } from "./state/update-scene";
 import { updateServantFormTool } from "./state/update-servant-form";
+import { upsertActorTool } from "./state/upsert-actor";
 
 export function registerAllTools(pi: ExtensionAPI): void {
   const toolLabel = "FSN 沙盒";
@@ -47,6 +48,7 @@ export function registerAllTools(pi: ExtensionAPI): void {
       "- 新增/解决当前场景目标，或新增/清除即时威胁\n\n" +
       "【严禁的行为】\n" +
       "- 用叙事直接跳过时间或改变地点但不调用工具\n" +
+      "- 在场 NPC 尚未写入 actor registry 时调用 private_resolve 或把 actorId 编出来\n" +
       "- 把长期目标塞进 scene；场景结束后应写入 memory",
     parameters: Type.Object({
       kind: Type.Union([
@@ -98,7 +100,7 @@ export function registerAllTools(pi: ExtensionAPI): void {
       ),
       subject: Type.Optional(Type.String()),
       text: Type.Optional(Type.String()),
-      sourceEventId: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+      sourceEventId: Type.Optional(Type.String()),
       title: Type.Optional(Type.String()),
       summary: Type.Optional(Type.String()),
       consequences: Type.Optional(Type.Array(Type.String())),
@@ -143,13 +145,39 @@ export function registerAllTools(pi: ExtensionAPI): void {
       recoverable: Type.Optional(Type.Boolean()),
       expectedDuration: Type.Optional(Type.Union([Type.String(), Type.Null()])),
       mechanicalEffect: Type.Optional(Type.String()),
-      outfit: Type.Optional(Type.Unknown()),
+      outfit: Type.Optional(
+        Type.Object({
+          label: Type.String({ description: "外观/服装标签" }),
+          details: Type.String({ description: "可见外貌与装备细节" }),
+        }),
+      ),
       itemId: Type.Optional(Type.String()),
       holderActorId: Type.Optional(Type.Union([Type.String(), Type.Null()])),
       reason: Type.Optional(Type.String()),
     }),
     execute: async (_toolCallId, params, _signal, _onUpdate, ctx) =>
       updateActorConditionTool(params, ctx.sessionManager),
+  });
+
+  pi.registerTool({
+    label: toolLabel,
+    name: "upsert_actor",
+    description:
+      "将已入场或需要追踪的 public actor 写入本局 actor registry；可同步标记在场/同盟。\n\n" +
+      "【必须调用的场景】\n" +
+      "- 预设角色或重要 NPC 正式入场，且后续需要被 scene、memory、private_resolve 或关系状态引用\n" +
+      "- 玩家与 NPC 建立同盟、敌对、契约、伤势、死亡、真名揭示等可追踪关系\n\n" +
+      "【严禁的行为】\n" +
+      "- 把世界角色数据库全量塞进 state；只写本局需要追踪的 actor\n" +
+      "- 写入玩家未知幕后真相；隐藏事实必须放 secrets/debug 路径",
+    parameters: Type.Object({
+      actor: publicActorSchema(),
+      present: Type.Boolean({ description: "是否加入当前 scene.presentActorIds" }),
+      ally: Type.Boolean({ description: "是否加入 allyActorIds" }),
+      reason: Type.String(),
+    }),
+    execute: async (_toolCallId, params, _signal, _onUpdate, ctx) =>
+      upsertActorTool(params, ctx.sessionManager),
   });
 
   pi.registerTool({
@@ -360,6 +388,95 @@ export function registerAllTools(pi: ExtensionAPI): void {
     description: "【调试工具】将当前内存状态导出到 state/state.json。严禁把 secrets 泄露给玩家。",
     parameters: Type.Object({}),
     execute: async () => exportStateTool(),
+  });
+}
+
+function publicActorSchema(): ReturnType<typeof Type.Object> {
+  return Type.Object({
+    id: Type.String(),
+    kind: Type.Union([
+      Type.Literal("human"),
+      Type.Literal("outsider"),
+      Type.Literal("spirit"),
+      Type.Literal("other"),
+    ]),
+    roles: Type.Array(
+      Type.Union([
+        Type.Object({ kind: Type.Literal("social"), label: Type.String() }),
+        Type.Object({
+          kind: Type.Literal("faction"),
+          factionId: Type.String(),
+          label: Type.String(),
+        }),
+        Type.Object({
+          kind: Type.Literal("master"),
+          commandSpells: Type.Object({ total: Type.Integer(), remaining: Type.Integer() }),
+          contractedServantIds: Type.Array(Type.String()),
+        }),
+      ]),
+    ),
+    magecraft: Type.Union([
+      Type.Null(),
+      Type.Object({
+        circuits: Type.Object({
+          count: Type.String(),
+          quality: Type.String({ description: "Fate rank 或 none" }),
+          od: Type.Integer({ description: "0-100" }),
+          status: Type.Union([
+            Type.Literal("normal"),
+            Type.Literal("overheated"),
+            Type.Literal("depleted"),
+            Type.Literal("dormant"),
+            Type.Literal("damaged"),
+          ]),
+          traits: Type.Array(Type.String()),
+        }),
+        disciplines: Type.Array(
+          Type.Object({
+            name: Type.String(),
+            rank: Type.String({ description: "Fate rank 或 none" }),
+            notes: Type.String(),
+          }),
+        ),
+        affiliation: Type.Union([Type.String(), Type.Null()]),
+      }),
+    ]),
+    servantForm: Type.Union([Type.Unknown(), Type.Null()]),
+    identity: Type.Object({
+      publicIdentity: Type.String(),
+      background: Type.String(),
+      lockedFacts: Type.Array(Type.Object({ id: Type.String(), text: Type.String() })),
+    }),
+    presentation: Type.Object({
+      displayName: Type.String(),
+      apparentAge: Type.String(),
+      outfit: Type.Object({ label: Type.String(), details: Type.String() }),
+      demeanor: Type.String(),
+    }),
+    condition: Type.Object({
+      wounds: Type.Array(Type.Unknown()),
+      afflictions: Type.Array(Type.Unknown()),
+      permanentEffects: Type.Array(Type.Unknown()),
+    }),
+    inventory: Type.Object({
+      ordinaryItems: Type.Array(Type.String()),
+      heldTrackedItemIds: Type.Array(Type.String()),
+    }),
+    abilities: Type.Array(
+      Type.Object({ id: Type.String(), label: Type.String(), summary: Type.String() }),
+    ),
+    relationshipToProtagonist: Type.Object({
+      stance: Type.Union([
+        Type.Literal("self"),
+        Type.Literal("ally"),
+        Type.Literal("friendly"),
+        Type.Literal("neutral"),
+        Type.Literal("wary"),
+        Type.Literal("hostile"),
+        Type.Literal("unknown"),
+      ]),
+      summary: Type.String(),
+    }),
   });
 }
 
