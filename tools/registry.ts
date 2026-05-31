@@ -441,7 +441,7 @@ function publicActorSchema(): ReturnType<typeof Type.Object> {
         affiliation: Type.Union([Type.String(), Type.Null()]),
       }),
     ]),
-    servantForm: Type.Union([Type.Unknown(), Type.Null()]),
+    servantForm: Type.Union([servantFormSchema(), Type.Null()]),
     identity: Type.Object({
       publicIdentity: Type.String(),
       background: Type.String(),
@@ -477,6 +477,93 @@ function publicActorSchema(): ReturnType<typeof Type.Object> {
       ]),
       summary: Type.String(),
     }),
+  });
+}
+
+function servantFormSchema(): ReturnType<typeof Type.Object> {
+  return Type.Object({
+    identity: Type.Object({
+      className: Type.String({ description: "Servant class, e.g. Saber" }),
+      trueName: Type.Object({
+        status: Type.Union([
+          Type.Literal("hidden"),
+          Type.Literal("suspected"),
+          Type.Literal("revealed"),
+        ]),
+        display: Type.String({ description: "玩家可见真名显示；隐藏时可用 ???" }),
+      }),
+      locked: Type.Literal(true),
+    }),
+    condition: Type.Object({
+      spiritualCore: Type.Object({ value: Type.Integer({ description: "0-100" }) }),
+      mana: Type.Object({ value: Type.Integer({ description: "0-100" }) }),
+      spiritualCondition: Type.String(),
+      permanentDefects: Type.Array(
+        Type.Object({
+          id: Type.String(),
+          source: Type.String(),
+          text: Type.String(),
+          mechanicalEffect: Type.String(),
+        }),
+      ),
+    }),
+    contract: Type.Object({
+      masterActorId: Type.Union([Type.String(), Type.Null()]),
+      masterName: Type.Union([Type.String(), Type.Null()]),
+      status: Type.Union([
+        Type.Literal("stable"),
+        Type.Literal("weak"),
+        Type.Literal("cut"),
+        Type.Literal("masterless"),
+      ]),
+      manaSupply: Type.Union([
+        Type.Literal("sufficient"),
+        Type.Literal("strained"),
+        Type.Literal("starved"),
+      ]),
+    }),
+    parameters: Type.Object({
+      base: Type.Object({
+        strength: Type.String(),
+        endurance: Type.String(),
+        agility: Type.String(),
+        mana: Type.String(),
+        luck: Type.String(),
+        noblePhantasm: Type.String(),
+      }),
+      modifiers: Type.Array(
+        Type.Object({
+          id: Type.String(),
+          source: Type.String(),
+          affectedParams: Type.Array(Type.String()),
+          summary: Type.String(),
+          expiresAt: Type.Union([Type.String(), Type.Null()]),
+        }),
+      ),
+      baseLocked: Type.Literal(true),
+    }),
+    skills: Type.Object({
+      classSkills: Type.Array(
+        Type.Object({ name: Type.String(), rank: Type.String(), summary: Type.String() }),
+      ),
+      personalSkills: Type.Array(
+        Type.Object({ name: Type.String(), rank: Type.String(), summary: Type.String() }),
+      ),
+    }),
+    noblePhantasms: Type.Array(
+      Type.Object({
+        name: Type.String(),
+        rank: Type.String(),
+        kind: Type.String(),
+        status: Type.Union([
+          Type.Literal("hidden"),
+          Type.Literal("suspected"),
+          Type.Literal("revealed"),
+        ]),
+        summary: Type.String(),
+      }),
+    ),
+    currentOrder: Type.String(),
   });
 }
 
