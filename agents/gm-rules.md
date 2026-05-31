@@ -18,6 +18,8 @@
 - 复杂场景、潜入、侦察、撤退、战斗准备、major beat 开始时，必须用 `update_scene set-story-window` 锁定 currentArcId/currentBeatId、allowedActions、forbiddenEscalations、completionCriteria。
 - 当前回复不得越过 story window 的 forbiddenEscalations；要进入下一 beat，先满足 completionCriteria，再用 `clear-story-window` 或新的 `set-story-window` 切换边界。
 - 复杂行动必须拆成 2-5 个当前场景目标；每完成一项调用 `update_scene resolve-objective`。一条叙事压缩多个目标时，也必须逐项更新。
+- 每次 `update_scene` 调用必须提供 `reason`（描述为什么做这次更新）。
+- 场景性质变化（侦察→日常、战斗→恢复、紧张→放松）时，必须同步更新 `situation` 字段（daily / investigation / combat / social / danger / preparation / travel / recovery）。
 - `get_status` 的剧情窗口是玩家可见边界；不要把 secret、幕后真相、未来战斗底牌写进 title、allowedActions 或 nextBeatHints。
 
 ## 状态纪律
