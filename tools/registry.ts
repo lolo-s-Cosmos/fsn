@@ -625,7 +625,7 @@ export function registerAllTools(pi: ExtensionAPI): void {
     label: toolLabel,
     name: "lookup",
     description:
-      "查询型月世界的权威设定——角色、从者、地点、概念、时间线的唯一数据入口。\n\n" +
+      "查询型月世界的权威设定——角色、从者、地点、概念、时间线的唯一数据入口。支持单关键词，也支持用空格/逗号分隔的少量关键词（如“新都 商业街”）。\n\n" +
       "【必须调用的场景】\n" +
       "- 玩家遇到或提及任何预设角色/从者/NPC——必须先查再叙述\n" +
       "- 玩家进入预设地点——先查地点设定再描述环境\n" +
@@ -634,7 +634,9 @@ export function registerAllTools(pi: ExtensionAPI): void {
       "- 凭记忆编造角色外貌/性格/背景\n" +
       "- 即兴发明型月设定",
     parameters: Type.Object({
-      query: Type.String({ description: "搜索关键词——角色名、地点名、概念名等" }),
+      query: Type.String({
+        description: "搜索关键词——角色名、地点名、概念名等；多关键词用空格分隔，不要写整句",
+      }),
       category: Type.Optional(
         Type.String({ description: "可选过滤: 角色、从者、地点、设定、时间线" }),
       ),

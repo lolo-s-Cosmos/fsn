@@ -180,14 +180,19 @@ function locationEntries(locations: LocationEntry[]): LookupEntry[] {
 
 function fuzzyMatchEntries(entries: LookupEntry[], query: string): MatchedEntry[] {
   const normalizedQuery = normalizeSearchText(query);
+  const queryTerms = splitQueryTerms(query);
   return entries
-    .map((entry) => scoreEntry(entry, normalizedQuery))
+    .map((entry) => scoreEntry(entry, normalizedQuery, queryTerms))
     .filter((match) => match.score >= MIN_FUZZY_SCORE)
     .toSorted(compareMatches)
     .slice(0, MAX_FUZZY_RESULTS);
 }
 
-function scoreEntry(entry: LookupEntry, normalizedQuery: string): MatchedEntry {
+function scoreEntry(
+  entry: LookupEntry,
+  normalizedQuery: string,
+  queryTerms: readonly string[],
+): MatchedEntry {
   const normalizedKey = normalizeSearchText(entry.key);
   const normalizedSearchableText = normalizeSearchText(entry.searchableText);
 
@@ -199,6 +204,25 @@ function scoreEntry(entry: LookupEntry, normalizedQuery: string): MatchedEntry {
   }
   if (normalizedSearchableText.includes(normalizedQuery)) {
     return { key: entry.key, text: entry.text, score: 78, reason: "正文包含关键词" };
+  }
+  if (queryTerms.length > 1) {
+    const keyTermHits = countContainedTerms(normalizedKey, queryTerms);
+    const textTermHits = countContainedTerms(normalizedSearchableText, queryTerms);
+    if (keyTermHits === queryTerms.length) {
+      return { key: entry.key, text: entry.text, score: 88, reason: "名称包含全部关键词" };
+    }
+    if (textTermHits === queryTerms.length) {
+      return { key: entry.key, text: entry.text, score: 84, reason: "正文包含全部关键词" };
+    }
+    if (textTermHits > 0) {
+      const partialScore = Math.round(48 + (textTermHits / queryTerms.length) * 28);
+      return {
+        key: entry.key,
+        text: entry.text,
+        score: partialScore,
+        reason: "正文包含部分关键词",
+      };
+    }
   }
 
   const keySimilarity = similarity(normalizedKey, normalizedQuery);
@@ -273,6 +297,17 @@ function normalizeSearchText(text: string): string {
     .normalize("NFKC")
     .toLocaleLowerCase()
     .replace(/[\s·・.＿_\-—:：()（）[\]【】{}]/g, "");
+}
+
+function splitQueryTerms(query: string): string[] {
+  return query
+    .split(/[\s,，、/／|｜]+/u)
+    .map(normalizeSearchText)
+    .filter((term) => term.length > 0);
+}
+
+function countContainedTerms(text: string, terms: readonly string[]): number {
+  return terms.filter((term) => text.includes(term)).length;
 }
 
 function similarity(left: string, right: string): number {
