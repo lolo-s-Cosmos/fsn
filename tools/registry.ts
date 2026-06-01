@@ -183,11 +183,13 @@ export function registerAllTools(pi: ExtensionAPI): void {
       "【必须调用的场景】\n" +
       "- 玩家身世确定；契约成立/解除/变更；NPC 死亡、失踪、重伤\n" +
       "- 真名公开、宝具首次解放、令咒使用、阵营变化、永久缺损\n" +
-      "- 半天以上时间跳过或章节结束\n\n" +
+      "- 单次采购、调查发现、战斗结论等需要长期保留的事件：用 record-major-event，并提供 claims\n" +
+      "- 半天以上时间跳过、日终或章节结束摘要：才用 record-daily-summary\n\n" +
       "【严禁的行为】\n" +
       "- 记录 GM 猜测、幕后真相、普通闲聊或短暂情绪\n" +
       "- 把玩家未确认秘密写进 public memory\n" +
-      "- 非 mundane claim 缺少 evidence 或 relatedSecretSlotIds 却写成 confirmed/observed/inferred",
+      "- 非 mundane claim 缺少 evidence 或 relatedSecretSlotIds 却写成 confirmed/observed/inferred\n" +
+      "- 用 record-daily-summary 绕过 claims 记录单次采购、单次调查或单次战斗结论",
     parameters: Type.Object({
       kind: Type.Union([
         Type.Literal("pin-fact"),

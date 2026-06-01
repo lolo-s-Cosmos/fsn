@@ -117,3 +117,31 @@ void test("recordMemory rejects hypothesis worded as confirmed fact", () => {
     /不能写成确认事实/,
   );
 });
+
+void test("recordMemory rejects daily summaries for single events", () => {
+  resetState();
+
+  assert.throws(
+    () =>
+      recordMemory({
+        kind: "record-daily-summary",
+        startDate: "2004-01-30T00:00:00.000Z",
+        endDate: "2004-01-30T23:59:00.000Z",
+        summary: "在新都商业街购入两件雨衣，花费2400円。",
+      }),
+    /单次采购\/调查\/战斗结论请用 record-major-event/,
+  );
+});
+
+void test("recordMemory accepts actual daily summaries", () => {
+  resetState();
+
+  const result = recordMemory({
+    kind: "record-daily-summary",
+    startDate: "2004-01-30T00:00:00.000Z",
+    endDate: "2004-01-30T23:59:00.000Z",
+    summary: "今日下午在新都完成采购并返回卫宫宅休整。",
+  });
+
+  assert.equal(getState().public.memory.dailySummaries[0]?.id, result.dailySummaryId);
+});

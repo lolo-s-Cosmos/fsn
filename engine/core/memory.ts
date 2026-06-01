@@ -199,6 +199,7 @@ function assertUncertainWording(statement: string): void {
 function recordDailySummary(
   event: Extract<MemoryEvent, { kind: "record-daily-summary" }>,
 ): MemoryEventResult {
+  assertDailySummaryScope(event.summary);
   const id = createId("daily");
   updateState((draft) => {
     draft.public.memory.dailySummaries.push({
@@ -209,4 +210,18 @@ function recordDailySummary(
     });
   });
   return { dailySummaryId: id };
+}
+
+function assertDailySummaryScope(summary: string): void {
+  const text = assertNonEmptyString(summary, "summary");
+  const singleEventMarkers = ["购入", "购买", "采购", "花费", "战斗结论", "调查发现"];
+  const summaryMarkers = ["半天", "上午", "下午", "夜间", "当天", "今日", "日终", "整天", "章节"];
+  if (
+    singleEventMarkers.some((marker) => text.includes(marker)) &&
+    !summaryMarkers.some((marker) => text.includes(marker))
+  ) {
+    throw new Error(
+      "record-daily-summary 只用于半天以上、日终或章节摘要；单次采购/调查/战斗结论请用 record-major-event 并提供 claims。",
+    );
+  }
 }
