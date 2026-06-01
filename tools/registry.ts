@@ -34,7 +34,7 @@ export function registerAllTools(pi: ExtensionAPI): void {
       "【必须调用的场景】\n" +
       "- 一轮回复同时改变时间/地点、Scene Objective、伤势、物品、资金、记忆或从者资源中的多个状态\n" +
       "- 叙事已经发生购买、治疗、移动、揭示、消耗、战斗结算等 canonical Game State 变化\n" +
-      "- 复杂 beat 收口时需要按顺序提交多个 Domain Event Tool 的效果\n\n" +
+      "- 复杂 beat 收口时需要按顺序提交 scene_beat transition-beat、移动、memory 等多个事件\n\n" +
       "【严禁的行为】\n" +
       "- 把它当裸 patch；events 必须是已有领域事件\n" +
       "- 提交 Hidden Fact 到 Public Game State；秘密仍必须走 reveal_secret/private_resolve/record_offscreen_event\n" +
@@ -45,12 +45,16 @@ export function registerAllTools(pi: ExtensionAPI): void {
         Type.Object({
           kind: Type.Union([
             Type.Literal("scene"),
+            Type.Literal("scene-beat"),
             Type.Literal("actor-condition"),
             Type.Literal("servant-form"),
             Type.Literal("economy"),
             Type.Literal("memory"),
           ]),
-          event: Type.Unknown({ description: "对应领域事件载荷，与原工具参数相同" }),
+          event: Type.Unknown({
+            description:
+              "对应领域事件载荷；scene-beat 使用 {kind:'begin-beat'|'transition-beat', input:{...}}",
+          }),
         }),
       ),
     }),

@@ -1,18 +1,25 @@
 import type { ActorConditionEvent, ActorConditionEventResult } from "./actor-condition";
 import type { EconomyEvent, EconomyEventResult } from "./economy";
 import type { MemoryEvent, MemoryEventResult } from "./memory";
-import type { SceneEvent, SceneEventResult } from "./scene";
+import type {
+  SceneBeatResult,
+  SceneBeatTransitionResult,
+  SceneBeatTurnEvent,
+  SceneEvent,
+  SceneEventResult,
+} from "./scene";
 import type { ServantFormEvent, ServantFormEventResult } from "./servant";
 
 import { updateActorCondition } from "./actor-condition";
 import { updateEconomy } from "./economy";
 import { recordMemory } from "./memory";
-import { updateScene } from "./scene";
+import { beginSceneBeat, transitionSceneBeat, updateScene } from "./scene";
 import { updateServantForm } from "./servant";
 import { assertNonEmptyString, getState } from "./state";
 
 export type TurnCommitEvent =
   | { kind: "scene"; event: SceneEvent }
+  | { kind: "scene-beat"; event: SceneBeatTurnEvent }
   | { kind: "actor-condition"; event: ActorConditionEvent }
   | { kind: "servant-form"; event: ServantFormEvent }
   | { kind: "economy"; event: EconomyEvent }
@@ -25,6 +32,7 @@ export interface TurnCommitInput {
 
 export type TurnCommitEventResult =
   | { kind: "scene"; result: SceneEventResult }
+  | { kind: "scene-beat"; result: SceneBeatResult | SceneBeatTransitionResult }
   | { kind: "actor-condition"; result: ActorConditionEventResult }
   | { kind: "servant-form"; result: ServantFormEventResult }
   | { kind: "economy"; result: EconomyEventResult }
@@ -55,6 +63,14 @@ function applyTurnEvent(event: TurnCommitEvent): TurnCommitEventResult {
   switch (event.kind) {
     case "scene":
       return { kind: event.kind, result: updateScene(event.event) };
+    case "scene-beat":
+      return {
+        kind: event.kind,
+        result:
+          event.event.kind === "begin-beat"
+            ? beginSceneBeat(event.event.input)
+            : transitionSceneBeat(event.event.input),
+      };
     case "actor-condition":
       return { kind: event.kind, result: updateActorCondition(event.event) };
     case "servant-form":

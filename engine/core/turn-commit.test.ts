@@ -79,3 +79,80 @@ void test("commitTurn warns when a story window has no active objectives", () =>
   assert.equal(result.warnings.length, 1);
   assert.match(result.warnings[0] ?? "", /没有未解决的 Scene Objective/);
 });
+
+void test("commitTurn can transition scene beat by objective summaries", () => {
+  resetState();
+
+  commitTurn({
+    summary: "开启侦察 beat。",
+    events: [
+      {
+        kind: "scene-beat",
+        event: {
+          kind: "begin-beat",
+          input: {
+            storyWindow: {
+              currentArcId: "B1",
+              currentBeatId: "scout",
+              title: "侦察",
+              allowedActions: ["观察", "撤退"],
+              forbiddenEscalations: ["不得交战"],
+              completionCriteria: ["观察完成", "安全撤回"],
+              nextBeatHints: [],
+            },
+            objectives: ["观察结界", "安全撤回"],
+            reason: "开始侦察",
+          },
+        },
+      },
+    ],
+  });
+
+  const result = commitTurn({
+    summary: "撤回并记录发现。",
+    events: [
+      {
+        kind: "scene",
+        event: {
+          kind: "move-location",
+          location: {
+            region: "冬木市",
+            site: "深山镇",
+            detail: "卫宫宅",
+            boundary: "normal",
+          },
+          elapsedMinutes: 35,
+          reason: "安全撤回",
+        },
+      },
+      {
+        kind: "scene-beat",
+        event: {
+          kind: "transition-beat",
+          input: {
+            completedBeatId: "scout",
+            resolvedObjectiveIds: [],
+            resolvedObjectiveSummaries: ["观察结界", "安全撤回"],
+            nextBeat: null,
+            reason: "侦察完成",
+          },
+        },
+      },
+      {
+        kind: "memory",
+        event: {
+          kind: "record-major-event",
+          title: "柳洞寺外围侦察",
+          summary: "从外围确认柳洞寺存在多层结界，山门是唯一入口。",
+          consequences: ["后续接近柳洞寺必须避开山门正面突破"],
+        },
+      },
+    ],
+  });
+
+  const state = getState();
+  assert.equal(state.public.scene.storyWindow, null);
+  assert.equal(state.public.scene.location.detail, "卫宫宅");
+  assert.equal(state.public.memory.eventLog[0]?.title, "柳洞寺外围侦察");
+  assert.equal(result.results.length, 3);
+});

@@ -26,6 +26,10 @@ export type SceneEvent =
   | { kind: "add-threat"; summary: string; severity: SceneThreatSeverity; reason: string }
   | { kind: "clear-threat"; threatId: SceneThreatId; reason: string };
 
+export type SceneBeatTurnEvent =
+  | { kind: "begin-beat"; input: SceneBeatInput }
+  | { kind: "transition-beat"; input: SceneBeatTransitionInput };
+
 export interface SceneBeatInput {
   storyWindow: StoryWindowState;
   objectives: string[];
@@ -44,6 +48,7 @@ export interface SceneBeatThreatInput {
 export interface SceneBeatTransitionInput {
   completedBeatId: StoryBeatId;
   resolvedObjectiveIds: SceneObjectiveId[];
+  resolvedObjectiveSummaries?: string[];
   nextBeat: SceneBeatInput | null;
   memoryPrompt?: string;
   reason: string;
@@ -120,7 +125,11 @@ export function transitionSceneBeat(input: SceneBeatTransitionInput): SceneBeatT
         `无法 transition beat：当前 beat 是 ${currentWindow.currentBeatId}，不是 ${input.completedBeatId}。`,
       );
     }
-    for (const objectiveId of input.resolvedObjectiveIds) {
+    for (const objectiveId of resolveObjectiveIds(
+      draft.public.scene.objectives,
+      input.resolvedObjectiveIds,
+      input.resolvedObjectiveSummaries ?? [],
+    )) {
       const objective = draft.public.scene.objectives.find((entry) => entry.id === objectiveId);
       if (objective === undefined) {
         throw new Error(`目标不存在: ${objectiveId}`);
@@ -256,6 +265,26 @@ function clearThreat(event: Extract<SceneEvent, { kind: "clear-threat" }>): Scen
     }
   });
   return { message: `威胁已清除：${event.threatId}。` };
+}
+
+function resolveObjectiveIds(
+  objectives: ReadonlyArray<{ id: SceneObjectiveId; summary: string }>,
+  ids: readonly SceneObjectiveId[],
+  summaries: readonly string[],
+): SceneObjectiveId[] {
+  const resolved = new Set<SceneObjectiveId>();
+  for (const id of ids) {
+    resolved.add(assertNonEmptyString(id, "resolvedObjectiveIds[]"));
+  }
+  for (const summary of summaries) {
+    const normalizedSummary = assertNonEmptyString(summary, "resolvedObjectiveSummaries[]");
+    const objective = objectives.find((entry) => entry.summary === normalizedSummary);
+    if (objective === undefined) {
+      throw new Error(`目标摘要不存在: ${normalizedSummary}`);
+    }
+    resolved.add(objective.id);
+  }
+  return [...resolved];
 }
 
 function assertBeatObjectives(objectives: readonly string[]): void {
