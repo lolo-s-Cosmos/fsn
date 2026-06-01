@@ -93,7 +93,7 @@ export function beginSceneBeat(input: SceneBeatInput): SceneBeatResult {
 }
 
 export function moveToSceneBeat(input: SceneBeatMoveInput): SceneBeatResult {
-  const elapsedMinutes = assertNonNegativeInteger(input.elapsedMinutes, "elapsedMinutes");
+  const elapsedMinutes = assertPositiveElapsedMinutes(input.elapsedMinutes);
   assertNonEmptyString(input.reason, "reason");
   assertBeatObjectives(input.objectives);
   const objectiveIds: SceneObjectiveId[] = [];
@@ -112,6 +112,16 @@ export function moveToSceneBeat(input: SceneBeatMoveInput): SceneBeatResult {
     objectiveIds,
     threatIds,
   };
+}
+
+function assertPositiveElapsedMinutes(value: unknown): number {
+  const elapsedMinutes = assertNonNegativeInteger(value, "elapsedMinutes");
+  if (elapsedMinutes === 0) {
+    throw new Error(
+      "非法elapsedMinutes: 0。移动或推进时间必须大于 0；若没有经过时间，请不要记录移动/时间推进事件。",
+    );
+  }
+  return elapsedMinutes;
 }
 
 function beginSceneBeatUnchecked(input: SceneBeatInput): SceneBeatResult {
@@ -233,7 +243,7 @@ export function updateScene(event: SceneEvent): SceneEventResult {
 }
 
 function moveLocation(event: Extract<SceneEvent, { kind: "move-location" }>): SceneEventResult {
-  const elapsedMinutes = assertNonNegativeInteger(event.elapsedMinutes, "elapsedMinutes");
+  const elapsedMinutes = assertPositiveElapsedMinutes(event.elapsedMinutes);
   updateState((draft) => {
     const nextTime = Temporal.Instant.from(draft.public.clock.currentAt)
       .add({ minutes: elapsedMinutes })

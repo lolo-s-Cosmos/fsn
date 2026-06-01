@@ -24,6 +24,55 @@ void test("updateScene moves location and advances clock", () => {
   assert.equal(state.public.clock.currentAt, "2004-01-30T07:30:00.000Z");
 });
 
+void test("updateScene rejects zero elapsed movement", () => {
+  resetState();
+
+  assert.throws(
+    () =>
+      updateScene({
+        kind: "move-location",
+        location: {
+          region: "冬木市",
+          site: "深山镇",
+          detail: "卫宫邸",
+          boundary: "normal",
+        },
+        elapsedMinutes: 0,
+        reason: "误把无时间经过写成移动",
+      }),
+    /elapsedMinutes: 0/,
+  );
+});
+
+void test("moveToSceneBeat rejects zero elapsed movement", () => {
+  resetState();
+
+  assert.throws(
+    () =>
+      moveToSceneBeat({
+        storyWindow: {
+          currentArcId: "B1",
+          currentBeatId: "bad-zero-time-beat",
+          title: "错误零时间移动 beat",
+          allowedActions: ["观察"],
+          forbiddenEscalations: [],
+          completionCriteria: ["记录"],
+          nextBeatHints: [],
+        },
+        objectives: ["记录"],
+        location: {
+          region: "冬木市",
+          site: "深山镇",
+          detail: "卫宫邸",
+          boundary: "normal",
+        },
+        elapsedMinutes: 0,
+        reason: "误把无时间经过写成移动 beat",
+      }),
+    /elapsedMinutes: 0/,
+  );
+});
+
 void test("updateScene creates objective ids after existing state ids", () => {
   resetState();
 

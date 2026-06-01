@@ -114,8 +114,8 @@ function recordMajorEvent(
   return { eventId: id };
 }
 
-function validateClaims(claims: readonly MemoryClaim[]): void {
-  if (claims.length === 0) {
+function validateClaims(claims: readonly MemoryClaim[] | undefined): void {
+  if (claims === undefined || claims.length === 0) {
     throw new Error(
       "record_memory 必须提供 claims；用结构化 claim 表达 public memory 的事实类型、确定性和证据。普通事实用 kind=mundane。",
     );

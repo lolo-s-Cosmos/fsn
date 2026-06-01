@@ -50,6 +50,17 @@ void test("recordMemory requires structured claims", () => {
       }),
     /必须提供 claims/,
   );
+
+  assert.throws(() => {
+    const invalidEvent = {
+      kind: "record-major-event",
+      title: "柳洞寺确认情报",
+      summary: "凛确认 Caster 正在柳洞寺。",
+      consequences: ["Caster 位置已确认。"],
+    };
+    // @ts-expect-error runtime boundary regression: tool input may omit claims even though TypeScript callers cannot.
+    recordMemory(invalidEvent);
+  }, /必须提供 claims/);
 });
 
 void test("recordMemory rejects non-mundane confirmed claims without evidence", () => {
