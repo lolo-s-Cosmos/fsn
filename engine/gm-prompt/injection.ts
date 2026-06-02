@@ -19,6 +19,8 @@ export interface PromptAssets {
   think: string;
   timeSense: string;
   socialProtocol: string;
+  romance: string;
+  intimacy: string;
   style: string;
 }
 
@@ -47,6 +49,8 @@ export function loadPromptAssets(): PromptAssets {
         join(__dirname, "..", "..", "agents", "gm-social-protocol.md"),
         "utf-8",
       ),
+      romance: readFileSync(join(__dirname, "..", "..", "agents", "gm-romance.md"), "utf-8"),
+      intimacy: readFileSync(join(__dirname, "..", "..", "agents", "gm-intimacy.md"), "utf-8"),
       style: readFileSync(join(__dirname, "..", "..", "agents", "gm-style.md"), "utf-8"),
     };
   }
@@ -80,6 +84,8 @@ export function injectGmPromptMessages<TMessage>(
     buildThinkMessage(),
     buildTimeSenseMessage(),
     buildSocialProtocolMessage(),
+    buildRomanceMessage(),
+    buildIntimacyMessage(),
     buildStyleMessage(),
     ...messages.slice(lastUserIndex + 1),
   ];
@@ -140,6 +146,20 @@ function buildSocialProtocolMessage(): TextMessage {
   return buildInjectedUserMessage(
     "[社交协议模块 — NPC 信息边界、本音建前与外显行为]",
     loadPromptAssets().socialProtocol,
+  );
+}
+
+function buildRomanceMessage(): TextMessage {
+  return buildInjectedUserMessage(
+    "[亲密关系模块 — 情感关系的展开、脆弱与日常亲密；不涉及露骨描写]",
+    loadPromptAssets().romance,
+  );
+}
+
+function buildIntimacyMessage(): TextMessage {
+  return buildInjectedUserMessage(
+    "[亲密接触模块 — 身体亲密的氛围、型月语境与边界；日常关系信号见 romance 模块]",
+    loadPromptAssets().intimacy,
   );
 }
 
