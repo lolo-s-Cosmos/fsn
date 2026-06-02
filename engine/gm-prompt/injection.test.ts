@@ -10,29 +10,34 @@ interface UserMessage {
   timestamp: number;
 }
 
-void test("buildSystemPrompt appends only the stable GM system identity", () => {
+void test("buildSystemPrompt appends only the stable narrative lens identity", () => {
   const systemPrompt = buildSystemPrompt("base");
 
   assert.match(systemPrompt, /base/);
   assert.match(systemPrompt, /Fate\/Stay Night 沙盒/);
+  assert.match(systemPrompt, /叙事镜头/);
+  assert.doesNotMatch(systemPrompt, /叙事者（GM）/);
   assert.doesNotMatch(systemPrompt, /内部检查模块/);
   assert.doesNotMatch(systemPrompt, /最终叙事风格模块/);
 });
 
-void test("injectGmPromptMessages inserts context rules think and style modules", () => {
+void test("injectGmPromptMessages inserts modular prompt stack", () => {
   resetState();
   const messages: UserMessage[] = [createUserMessage("继续。")];
 
   const injected = injectGmPromptMessages<UserMessage>(messages);
   const texts = injected.map((message) => textOf(message));
 
-  assert.equal(injected.length, 6);
+  assert.equal(injected.length, 9);
   assert.match(texts[0] ?? "", /世界观与参考信息/);
   assert.equal(texts[1], "继续。");
   assert.match(texts[2] ?? "", /当前机械状态简报/);
   assert.match(texts[3] ?? "", /硬规则模块/);
-  assert.match(texts[4] ?? "", /内部检查模块/);
-  assert.match(texts[5] ?? "", /最终叙事风格模块/);
+  assert.match(texts[4] ?? "", /输入协议模块/);
+  assert.match(texts[5] ?? "", /内部检查模块/);
+  assert.match(texts[6] ?? "", /时间感知模块/);
+  assert.match(texts[7] ?? "", /社交协议模块/);
+  assert.match(texts[8] ?? "", /最终叙事风格模块/);
 });
 
 function createUserMessage(text: string): UserMessage {

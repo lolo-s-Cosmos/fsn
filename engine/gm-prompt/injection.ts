@@ -15,7 +15,10 @@ export interface PromptAssets {
   system: string;
   context: string;
   rules: string;
+  inputProtocol: string;
   think: string;
+  timeSense: string;
+  socialProtocol: string;
   style: string;
 }
 
@@ -34,7 +37,16 @@ export function loadPromptAssets(): PromptAssets {
       system: readFileSync(join(__dirname, "..", "..", "agents", "gm-system.md"), "utf-8"),
       context: readFileSync(join(__dirname, "..", "..", "agents", "gm-context.md"), "utf-8"),
       rules: readFileSync(join(__dirname, "..", "..", "agents", "gm-rules.md"), "utf-8"),
+      inputProtocol: readFileSync(
+        join(__dirname, "..", "..", "agents", "gm-input-protocol.md"),
+        "utf-8",
+      ),
       think: readFileSync(join(__dirname, "..", "..", "agents", "gm-think.md"), "utf-8"),
+      timeSense: readFileSync(join(__dirname, "..", "..", "agents", "gm-time-sense.md"), "utf-8"),
+      socialProtocol: readFileSync(
+        join(__dirname, "..", "..", "agents", "gm-social-protocol.md"),
+        "utf-8",
+      ),
       style: readFileSync(join(__dirname, "..", "..", "agents", "gm-style.md"), "utf-8"),
     };
   }
@@ -64,7 +76,10 @@ export function injectGmPromptMessages<TMessage>(
     lastUserMessage,
     buildStatePressureMessage(),
     buildRulesMessage(),
+    buildInputProtocolMessage(),
     buildThinkMessage(),
+    buildTimeSenseMessage(),
+    buildSocialProtocolMessage(),
     buildStyleMessage(),
     ...messages.slice(lastUserIndex + 1),
   ];
@@ -100,10 +115,31 @@ function buildRulesMessage(): TextMessage {
   );
 }
 
+function buildInputProtocolMessage(): TextMessage {
+  return buildInjectedUserMessage(
+    "[输入协议模块 — 判断用户话语、内心与元说明的可见性]",
+    loadPromptAssets().inputProtocol,
+  );
+}
+
 function buildThinkMessage(): TextMessage {
   return buildInjectedUserMessage(
     "[内部检查模块 — 只用于自检，禁止写进最终回复]",
     loadPromptAssets().think,
+  );
+}
+
+function buildTimeSenseMessage(): TextMessage {
+  return buildInjectedUserMessage(
+    "[时间感知模块 — 把时间经过转成场景变化]",
+    loadPromptAssets().timeSense,
+  );
+}
+
+function buildSocialProtocolMessage(): TextMessage {
+  return buildInjectedUserMessage(
+    "[社交协议模块 — NPC 信息边界、本音建前与外显行为]",
+    loadPromptAssets().socialProtocol,
   );
 }
 
