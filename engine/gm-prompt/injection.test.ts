@@ -28,19 +28,20 @@ void test("injectGmPromptMessages inserts slot-based prompt stack", () => {
   const injected = injectGmPromptMessages<UserMessage>(messages);
   const texts = injected.map((message) => textOf(message));
 
-  assert.equal(injected.length, 12);
+  assert.equal(injected.length, 13);
   assert.match(texts[0] ?? "", /<creative_constitution>/);
   assert.match(texts[1] ?? "", /<world_context>/);
   assert.match(texts[2] ?? "", /<input_guide>/);
   assert.match(texts[3] ?? "", /<social_guide>/);
-  assert.match(texts[4] ?? "", /<writing_guide>/);
-  assert.match(texts[5] ?? "", /<render_protocol>/);
-  assert.equal(texts[6], "继续。");
-  assert.match(texts[7] ?? "", /<mechanical_state>/);
-  assert.match(texts[8] ?? "", /<tool_policy>/);
-  assert.match(texts[9] ?? "", /<hard_rules>/);
-  assert.match(texts[10] ?? "", /<story_driver>/);
-  assert.match(texts[11] ?? "", /<output_contract>/);
+  assert.match(texts[4] ?? "", /<style_blacklist>/);
+  assert.match(texts[5] ?? "", /<writing_guide>/);
+  assert.match(texts[6] ?? "", /<render_protocol>/);
+  assert.equal(texts[7], "继续。");
+  assert.match(texts[8] ?? "", /<mechanical_state>/);
+  assert.match(texts[9] ?? "", /<tool_policy>/);
+  assert.match(texts[10] ?? "", /<hard_rules>/);
+  assert.match(texts[11] ?? "", /<story_driver>/);
+  assert.match(texts[12] ?? "", /<output_contract>/);
 });
 
 void test("injectGmPromptMessages keeps conversation history contiguous before runtime slots", () => {
@@ -50,9 +51,9 @@ void test("injectGmPromptMessages keeps conversation history contiguous before r
   const injected = injectGmPromptMessages<UserMessage>(messages);
   const texts = injected.map((message) => textOf(message));
 
-  assert.equal(texts[6], "第一句。");
-  assert.equal(texts[7], "第二句。");
-  assert.match(texts[8] ?? "", /<mechanical_state>/);
+  assert.equal(texts[7], "第一句。");
+  assert.equal(texts[8], "第二句。");
+  assert.match(texts[9] ?? "", /<mechanical_state>/);
 });
 
 function createUserMessage(text: string): UserMessage {

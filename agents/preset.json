@@ -34,6 +34,14 @@
       "source": "agents/gm-social-guide.md"
     },
     {
+      "id": "style-blacklist",
+      "enabled": true,
+      "slot": "pre-history",
+      "priority": 45,
+      "header": "style_blacklist",
+      "source": "agents/gm-style-blacklist.md"
+    },
+    {
       "id": "writing-guide",
       "enabled": true,
       "slot": "pre-history",

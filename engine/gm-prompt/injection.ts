@@ -33,17 +33,11 @@ interface PromptModule {
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = join(__dirname, "..", "..");
 
-let cachedAssets: PromptAssets | null = null;
-const cachedFileSources = new Map<string, string>();
-
 export function loadPromptAssets(): PromptAssets {
-  if (cachedAssets === null) {
-    cachedAssets = {
-      system: readFileSync(join(PROJECT_ROOT, "agents", "gm-system.md"), "utf-8"),
-      preset: loadPromptPreset(PROJECT_ROOT),
-    };
-  }
-  return cachedAssets;
+  return {
+    system: readFileSync(join(PROJECT_ROOT, "agents", "gm-system.md"), "utf-8"),
+    preset: loadPromptPreset(PROJECT_ROOT),
+  };
 }
 
 export function buildSystemPrompt(baseSystemPrompt: string): string {
@@ -90,13 +84,7 @@ function resolvePromptModuleBody(module: PromptPresetModule): string {
 }
 
 function readPromptFile(path: string): string {
-  const cached = cachedFileSources.get(path);
-  if (cached !== undefined) {
-    return cached;
-  }
-  const content = readFileSync(join(PROJECT_ROOT, path), "utf-8");
-  cachedFileSources.set(path, content);
-  return content;
+  return readFileSync(join(PROJECT_ROOT, path), "utf-8");
 }
 
 function buildSlotMessages(slot: PromptSlot): TextMessage[] {
