@@ -72,7 +72,7 @@ export function injectGmPromptMessages<TMessage>(
     ...buildSlotMessages("pre-history"),
     ...messages.slice(0, lastUserIndex),
     lastUserMessage,
-    ...buildSlotMessages("post-last-user"),
+    ...buildSlotMessages("pre-response"),
     ...messages.slice(lastUserIndex + 1),
     ...buildSlotMessages("final-contract"),
   ];

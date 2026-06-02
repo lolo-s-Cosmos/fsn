@@ -19,7 +19,7 @@ void test("parsePromptPreset accepts file and runtime sources", () => {
         {
           id: "state",
           enabled: false,
-          slot: "post-last-user",
+          slot: "pre-response",
           priority: 20,
           header: "mechanical_state",
           source: "runtime:state-brief",

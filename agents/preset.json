@@ -36,7 +36,7 @@
     {
       "id": "mechanical-state",
       "enabled": true,
-      "slot": "post-last-user",
+      "slot": "pre-response",
       "priority": 10,
       "header": "mechanical_state",
       "source": "runtime:state-brief"
@@ -44,7 +44,7 @@
     {
       "id": "hard-rules",
       "enabled": true,
-      "slot": "post-last-user",
+      "slot": "pre-response",
       "priority": 20,
       "header": "hard_rules",
       "source": "agents/gm-rules.md"
@@ -52,7 +52,7 @@
     {
       "id": "story-driver",
       "enabled": true,
-      "slot": "post-last-user",
+      "slot": "pre-response",
       "priority": 30,
       "header": "story_driver",
       "source": "agents/gm-think.md"
