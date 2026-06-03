@@ -68,6 +68,7 @@ interface LookupEntry {
 }
 
 interface MatchedEntry {
+  kind: LookupKind;
   key: string;
   text: string;
   score: number;
@@ -75,7 +76,6 @@ interface MatchedEntry {
 }
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const MAX_CHARACTER_RESULTS = 3;
 const MAX_FUZZY_RESULTS = 5;
 const CHARACTER_PREVIEW_LENGTH = 600;
 const MIN_FUZZY_SCORE = 52;
@@ -84,18 +84,15 @@ let cachedStore: WorldDataStore | null = null;
 
 export function lookupWorldData(request: LookupRequest): LookupResult {
   const query = normalizeQuery(request.query);
-  const kinds = resolveKinds(request.category);
   const store = getWorldDataStore();
+  const matches = lookupAllKinds(store, query);
 
-  for (const kind of kinds) {
-    const matches = lookupByKind(store, kind, query);
-    if (matches.length > 0) {
-      return { text: formatMatches(kind, matches) };
-    }
+  if (matches.length > 0) {
+    return { text: formatMatches(matches) };
   }
 
   return {
-    text: `未找到 "${query}" 的相关信息。可用查询类型: 角色/从者/地点/设定/时间线。`,
+    text: `未找到 "${query}" 的相关信息。`,
   };
 }
 
@@ -122,6 +119,14 @@ function loadWorldDataStore(): WorldDataStore {
   };
 }
 
+function lookupAllKinds(store: WorldDataStore, query: string): MatchedEntry[] {
+  const kinds: LookupKind[] = ["角色", "地点", "设定", "时间线"];
+  return kinds
+    .flatMap((kind) => lookupByKind(store, kind, query))
+    .toSorted(compareMatches)
+    .slice(0, MAX_FUZZY_RESULTS);
+}
+
 function lookupByKind(store: WorldDataStore, kind: LookupKind, query: string): MatchedEntry[] {
   const handlers: Record<LookupKind, () => LookupEntry[]> = {
     角色: () => [...characterEntries(store.characters), ...servantEntries(store.servants)],
@@ -129,7 +134,7 @@ function lookupByKind(store: WorldDataStore, kind: LookupKind, query: string): M
     设定: () => [...recordEntries(store.world.核心设定), ...recordEntries(store.world.规则)],
     时间线: () => recordEntries(store.timelines),
   };
-  return fuzzyMatchEntries(handlers[kind](), query);
+  return fuzzyMatchEntries(handlers[kind](), kind, query);
 }
 
 function characterEntries(characters: Record<string, CharacterEntry>): LookupEntry[] {
@@ -178,11 +183,15 @@ function locationEntries(locations: LocationEntry[]): LookupEntry[] {
   }));
 }
 
-function fuzzyMatchEntries(entries: LookupEntry[], query: string): MatchedEntry[] {
+function fuzzyMatchEntries(
+  entries: LookupEntry[],
+  kind: LookupKind,
+  query: string,
+): MatchedEntry[] {
   const normalizedQuery = normalizeSearchText(query);
   const queryTerms = splitQueryTerms(query);
   return entries
-    .map((entry) => scoreEntry(entry, normalizedQuery, queryTerms))
+    .map((entry) => scoreEntry(entry, kind, normalizedQuery, queryTerms))
     .filter((match) => match.score >= MIN_FUZZY_SCORE)
     .toSorted(compareMatches)
     .slice(0, MAX_FUZZY_RESULTS);
@@ -190,6 +199,7 @@ function fuzzyMatchEntries(entries: LookupEntry[], query: string): MatchedEntry[
 
 function scoreEntry(
   entry: LookupEntry,
+  kind: LookupKind,
   normalizedQuery: string,
   queryTerms: readonly string[],
 ): MatchedEntry {
@@ -197,26 +207,27 @@ function scoreEntry(
   const normalizedSearchableText = normalizeSearchText(entry.searchableText);
 
   if (normalizedKey === normalizedQuery) {
-    return { key: entry.key, text: entry.text, score: 100, reason: "精确匹配" };
+    return { kind, key: entry.key, text: entry.text, score: 100, reason: "精确匹配" };
   }
   if (normalizedKey.includes(normalizedQuery)) {
-    return { key: entry.key, text: entry.text, score: 92, reason: "名称包含关键词" };
+    return { kind, key: entry.key, text: entry.text, score: 92, reason: "名称包含关键词" };
   }
   if (normalizedSearchableText.includes(normalizedQuery)) {
-    return { key: entry.key, text: entry.text, score: 78, reason: "正文包含关键词" };
+    return { kind, key: entry.key, text: entry.text, score: 78, reason: "正文包含关键词" };
   }
   if (queryTerms.length > 1) {
     const keyTermHits = countContainedTerms(normalizedKey, queryTerms);
     const textTermHits = countContainedTerms(normalizedSearchableText, queryTerms);
     if (keyTermHits === queryTerms.length) {
-      return { key: entry.key, text: entry.text, score: 88, reason: "名称包含全部关键词" };
+      return { kind, key: entry.key, text: entry.text, score: 88, reason: "名称包含全部关键词" };
     }
     if (textTermHits === queryTerms.length) {
-      return { key: entry.key, text: entry.text, score: 84, reason: "正文包含全部关键词" };
+      return { kind, key: entry.key, text: entry.text, score: 84, reason: "正文包含全部关键词" };
     }
     if (textTermHits > 0) {
       const partialScore = Math.round(48 + (textTermHits / queryTerms.length) * 28);
       return {
+        kind,
         key: entry.key,
         text: entry.text,
         score: partialScore,
@@ -227,7 +238,7 @@ function scoreEntry(
 
   const keySimilarity = similarity(normalizedKey, normalizedQuery);
   const fuzzyScore = Math.round(keySimilarity * 100);
-  return { key: entry.key, text: entry.text, score: fuzzyScore, reason: "名称模糊匹配" };
+  return { kind, key: entry.key, text: entry.text, score: fuzzyScore, reason: "名称模糊匹配" };
 }
 
 function compareMatches(left: MatchedEntry, right: MatchedEntry): number {
@@ -237,51 +248,13 @@ function compareMatches(left: MatchedEntry, right: MatchedEntry): number {
   return left.key.localeCompare(right.key, "zh-Hans-CN");
 }
 
-function formatMatches(kind: LookupKind, matches: MatchedEntry[]): string {
-  if (kind !== "角色") {
-    return matches.map(formatMatch).join("\n\n");
-  }
-
-  const visible = matches.slice(0, MAX_CHARACTER_RESULTS).map((match) => {
-    const preview = truncate(match.text, CHARACTER_PREVIEW_LENGTH);
-    return `### ${match.key}（${match.reason}）\n${preview}`;
-  });
-  const hint =
-    matches.length > MAX_CHARACTER_RESULTS
-      ? `\n\n（另有 ${matches.length - MAX_CHARACTER_RESULTS} 条匹配结果，请缩小查询范围）`
-      : "";
-  return visible.join("\n\n---\n\n") + hint;
+function formatMatches(matches: MatchedEntry[]): string {
+  return matches.map(formatMatch).join("\n\n---\n\n");
 }
 
 function formatMatch(match: MatchedEntry): string {
-  return `### ${match.key}（${match.reason}）\n${match.text}`;
-}
-
-function resolveKinds(rawKind: string | undefined): LookupKind[] {
-  if (rawKind === undefined || rawKind.trim().length === 0) {
-    return ["角色", "地点", "设定", "时间线"];
-  }
-
-  const kind = rawKind.trim();
-  switch (kind) {
-    case "角色":
-    case "人物":
-    case "从者":
-    case "英灵":
-      return ["角色"];
-    case "地点":
-    case "位置":
-      return ["地点"];
-    case "设定":
-    case "规则":
-    case "概念":
-      return ["设定"];
-    case "时间线":
-    case "历史":
-      return ["时间线"];
-    default:
-      throw new Error(`无效查询类型: ${kind}。可选: 角色/从者/地点/设定/时间线。`);
-  }
+  const text = match.kind === "角色" ? truncate(match.text, CHARACTER_PREVIEW_LENGTH) : match.text;
+  return `### [${match.kind}] ${match.key}（${match.reason}）\n${text}`;
 }
 
 function normalizeQuery(query: string): string {
