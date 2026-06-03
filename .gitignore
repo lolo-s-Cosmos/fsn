@@ -1,6 +1,7 @@
 # Gameplay-generated files
 /state/
 /sessions/
+/agents/user/
 
 # Pi isolation (auto-generated on first run)
 .pi/agent/

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import test from "node:test";
 
 import { resetState } from "../core/state";
@@ -41,11 +42,31 @@ void test("injectGmPromptMessages inserts slot-based prompt stack", () => {
   assert.match(texts[8] ?? "", /目标选择规则/);
   assert.match(texts[8] ?? "", /逐字复制上方 summary/);
   assert.match(texts[9] ?? "", /<protagonist_impression>/);
-  assert.match(texts[9] ?? "", /Saber \/ 两仪式/);
   assert.match(texts[10] ?? "", /<tool_policy>/);
   assert.match(texts[11] ?? "", /<hard_rules>/);
   assert.match(texts[12] ?? "", /<story_driver>/);
   assert.match(texts[13] ?? "", /<output_contract>/);
+});
+
+void test("injectGmPromptMessages prefers local user prompt overrides", () => {
+  resetState();
+  const overridePath = "agents/user/protagonist-impression.md";
+  const original = existsSync(overridePath) ? readFileSync(overridePath, "utf-8") : null;
+  mkdirSync("agents/user", { recursive: true });
+  writeFileSync(overridePath, "# 本地主角印象\n\n本地覆盖测试。\n");
+  try {
+    const injected = injectGmPromptMessages<UserMessage>([createUserMessage("继续。")]);
+    const texts = injected.map((message) => textOf(message));
+
+    assert.match(texts[9] ?? "", /本地覆盖测试/);
+    assert.doesNotMatch(texts[9] ?? "", /待填写/);
+  } finally {
+    if (original === null) {
+      rmSync(overridePath, { force: true });
+    } else {
+      writeFileSync(overridePath, original);
+    }
+  }
 });
 
 void test("injectGmPromptMessages keeps conversation history contiguous before runtime slots", () => {

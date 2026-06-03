@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -84,7 +84,16 @@ function resolvePromptModuleBody(module: PromptPresetModule): string {
 }
 
 function readPromptFile(path: string): string {
-  return readFileSync(join(PROJECT_ROOT, path), "utf-8");
+  return readFileSync(resolvePromptFilePath(path), "utf-8");
+}
+
+function resolvePromptFilePath(path: string): string {
+  const userPath = path.replace(/^agents\//u, "agents/user/");
+  const absoluteUserPath = join(PROJECT_ROOT, userPath);
+  if (userPath !== path && existsSync(absoluteUserPath)) {
+    return absoluteUserPath;
+  }
+  return join(PROJECT_ROOT, path);
 }
 
 function buildSlotMessages(slot: PromptSlot): TextMessage[] {
