@@ -20,12 +20,13 @@
 
 ## 子 agent 路由
 
-以下情况先考虑调用对应 subagent；subagent 只给审计或后台候选，主 GM 仍负责状态落地与玩家可见正文。调用 subagent 时必须显式使用 `agentScope: "project"`，严禁调用 user-scope subagent。
+以下情况必须调用对应 subagent；subagent 只给审计或后台候选，主 GM 仍负责状态落地与玩家可见正文。调用 subagent 时必须显式使用 `agentScope: "project"`，严禁调用 user-scope subagent。
 
-- 世界线调性跑偏、悬疑拖长但没有明确行动情报、beat 空转：调用 `timeline-showrunner`。
-- 关键 NPC 被写成纯线索容器、纯受害者或纯等待状态：调用 `timeline-showrunner` 检查 NPC autonomy。
-- 时间推进超过 10-30 分钟、休息、睡眠、治疗、躲藏或过夜：考虑调用 `parallel-line` 推进 1 条相关后台阵营。
-- 当前 beat 收束、arc transition、或玩家获得安全空窗：考虑调用 `parallel-line` 结算世界背面。
+- 世界线调性跑偏、悬疑拖长但没有明确行动情报、beat 空转：必须先调用 `timeline-showrunner`，再继续正文。
+- 玩家明确忽略、搁置或绕开同一个悬疑钩子后，GM 仍想再次描写它抢镜：必须先调用 `timeline-showrunner`；未经审计，不得反复重提该钩子。
+- 关键 NPC 被写成纯线索容器、纯受害者或纯等待状态：必须调用 `timeline-showrunner` 检查 NPC autonomy。
+- 时间推进超过 10-30 分钟、休息、睡眠、治疗、躲藏或过夜：必须调用 `parallel-line` 推进 1 条相关后台阵营，除非本轮没有任何世界背面行动空间并在内部计划中明确跳过理由。
+- 当前 beat 收束、arc transition、或玩家获得安全空窗：必须调用 `parallel-line` 结算世界背面。
 - 子 agent 输出不得直接成为 canonical state；需要落地时由主 GM 审核后使用 `record_offscreen_event`、公开 clue/threat/memory 或普通领域工具。
 
 ## 边界
