@@ -21,6 +21,8 @@
 ## 边界
 
 - 简单移动、短时间推进、单个目标/威胁变化：用 `update_scene`。
+- 原地等待、休息、睡眠、守夜或过夜且本轮没有其他状态变化：用 `update_scene kind=advance-time`。
+- 原地等待、休息、睡眠、守夜或过夜且本轮还有 condition / servant / memory 等状态变化：用 `commit_turn`，并包含 scene `advance-time` 事件。
 - 复杂 beat 中不要手动拼 `set-story-window` + 多个 `add-objective`；优先用 `start_scene_beat`。
 - 10 分钟以上低风险过渡用 `update_scene` 推进时间。
 - 高风险、恢复、睡眠、治疗、补魔必须记录代价。
