@@ -4,6 +4,7 @@ import type {
   MagecraftCircuitState,
   OutfitState,
   PermanentEffect,
+  PublicActorState,
   WoundSeverity,
 } from "./state";
 
@@ -231,18 +232,22 @@ function resolveCondition(
     }
     switch (event.conditionKind) {
       case "wound":
-        actor.condition.wounds = removeCondition(
-          actor.condition.wounds,
-          event.conditionId,
-          "wound",
-        );
+        actor.condition.wounds = removeCondition({
+          conditions: actor.condition.wounds,
+          conditionId: event.conditionId,
+          conditionKind: "wound",
+          actor,
+          actors: draft.public.actors,
+        });
         break;
       case "affliction":
-        actor.condition.afflictions = removeCondition(
-          actor.condition.afflictions,
-          event.conditionId,
-          "affliction",
-        );
+        actor.condition.afflictions = removeCondition({
+          conditions: actor.condition.afflictions,
+          conditionId: event.conditionId,
+          conditionKind: "affliction",
+          actor,
+          actors: draft.public.actors,
+        });
         break;
       default:
         throw new Error("unreachable condition kind");
@@ -251,19 +256,65 @@ function resolveCondition(
   return { message: `状态已处理：${event.conditionId} (${event.outcome})。` };
 }
 
+interface RemoveConditionInput<TCondition extends { id: string; text?: string }> {
+  conditions: TCondition[];
+  conditionId: string;
+  conditionKind: "wound" | "affliction";
+  actor: PublicActorState;
+  actors: Record<ActorId, PublicActorState>;
+}
+
 function removeCondition<TCondition extends { id: string; text?: string }>(
-  conditions: TCondition[],
-  conditionId: string,
-  conditionKind: string,
+  input: RemoveConditionInput<TCondition>,
 ): TCondition[] {
-  const id = assertNonEmptyString(conditionId, "conditionId");
-  const next = conditions.filter((condition) => condition.id !== id);
-  if (next.length === conditions.length) {
-    throw new Error(
-      `${conditionKind} 不存在: ${id}。可用 ${conditionKind}: ${formatAvailableConditions(conditions)}`,
-    );
+  const id = assertNonEmptyString(input.conditionId, "conditionId");
+  const next = input.conditions.filter((condition) => condition.id !== id);
+  if (next.length === input.conditions.length) {
+    throw new Error(formatMissingConditionMessage(input, id));
   }
   return next;
+}
+
+function formatMissingConditionMessage<TCondition extends { id: string; text?: string }>(
+  input: RemoveConditionInput<TCondition>,
+  conditionId: string,
+): string {
+  const owner = findConditionOwner(input.actors, input.conditionKind, conditionId);
+  const ownerHint =
+    owner === null
+      ? ""
+      : `。该 ${input.conditionKind} 存在于 ${formatActorLabel(owner)}；请改用 actorId=${owner.id}`;
+  return `${input.conditionKind} 不存在于 ${formatActorLabel(input.actor)}: ${conditionId}。当前 actor 可用 ${input.conditionKind}: ${formatAvailableConditions(input.conditions)}${ownerHint}`;
+}
+
+function findConditionOwner(
+  actors: Record<ActorId, PublicActorState>,
+  conditionKind: "wound" | "affliction",
+  conditionId: string,
+): PublicActorState | null {
+  return (
+    Object.values(actors).find((actor) =>
+      getConditionsByKind(actor, conditionKind).some((condition) => condition.id === conditionId),
+    ) ?? null
+  );
+}
+
+function getConditionsByKind(
+  actor: PublicActorState,
+  conditionKind: "wound" | "affliction",
+): readonly { id: string; text?: string }[] {
+  switch (conditionKind) {
+    case "wound":
+      return actor.condition.wounds;
+    case "affliction":
+      return actor.condition.afflictions;
+    default:
+      throw new Error("unreachable condition kind");
+  }
+}
+
+function formatActorLabel(actor: PublicActorState): string {
+  return `${actor.id}（${actor.presentation.displayName}）`;
 }
 
 function formatAvailableConditions(conditions: readonly { id: string; text?: string }[]): string {

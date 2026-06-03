@@ -148,7 +148,49 @@ void test("updateActorCondition lists available afflictions when resolve id is m
         reason: "睡眠后恢复",
       }),
     {
-      message: `affliction 不存在: ayaka-mana-strain-resting-fatigue。可用 affliction: ${afflictionId}（魔术回路近乎干涸）`,
+      message: `affliction 不存在于 protagonist（你）: ayaka-mana-strain-resting-fatigue。当前 actor 可用 affliction: ${afflictionId}（魔术回路近乎干涸）`,
+    },
+  );
+});
+
+void test("updateActorCondition points to the actor that owns the missing condition id", () => {
+  resetState();
+
+  upsertActor({
+    kind: "ensure-public-npc",
+    npc: {
+      actorId: "ayaka-sajyou",
+      npcKind: "human",
+      displayName: "绫香·沙条",
+      publicIdentity: "绫香·沙条",
+      relationshipToProtagonist: { stance: "ally", summary: "测试" },
+    },
+    reason: "测试 NPC",
+  });
+  updateActorCondition({
+    kind: "add-affliction",
+    actorId: "ayaka-sajyou",
+    text: "供魔反冲疲惫",
+    source: "连续供魔",
+    expectedDuration: "休息后缓解",
+  });
+  const afflictionId = getState().public.actors["ayaka-sajyou"]?.condition.afflictions[0]?.id;
+  if (afflictionId === undefined) {
+    throw new Error("expected affliction id");
+  }
+
+  assert.throws(
+    () =>
+      updateActorCondition({
+        kind: "resolve-condition",
+        actorId: "protagonist",
+        conditionKind: "affliction",
+        conditionId: afflictionId,
+        outcome: "recovered",
+        reason: "睡眠后恢复",
+      }),
+    {
+      message: `affliction 不存在于 protagonist（你）: ${afflictionId}。当前 actor 可用 affliction: 无。该 affliction 存在于 ayaka-sajyou（绫香·沙条）；请改用 actorId=ayaka-sajyou`,
     },
   );
 });
