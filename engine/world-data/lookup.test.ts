@@ -29,7 +29,7 @@ void test("lookupWorldData finds FSF genre contract", () => {
 
   assert.match(result.text, /Fate\/strange Fake世界线契约/);
   assert.match(result.text, /战场情报缺口/);
-  assert.match(result.text, /哥特悬疑道具/);
+  assert.match(result.text, /哥特式道具悬疑/);
 });
 
 void test("lookupWorldData finds Snowfield locations", () => {

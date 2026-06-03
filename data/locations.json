@@ -170,6 +170,86 @@
         "悬疑钩子被玩家搁置后应降噪；张力优先来自契约现实、供魔、令咒、位置暴露和城市封锁。",
         "不要把门响、信封、暗处物件反复作为段尾压力锚。"
       ]
+    },
+    {
+      "id": "snowfield-police-department",
+      "name": "斯诺菲尔德警局",
+      "category": "地点",
+      "summary": "奥兰多·里夫掌控的城市警务中枢，表层处理治安、交通和媒体口径，深层与卡拉汀小队及圣杯战争应对相连。",
+      "stateLocation": {
+        "region": "斯诺菲尔德",
+        "site": "市区",
+        "detail": "警局",
+        "boundary": "faction-controlled"
+      },
+      "notes": [
+        "玩家可从新闻、路障、盘查和警车活动感知其影响。",
+        "不是安全避难所；进入会带来身份核验、监控和阵营关注。"
+      ]
+    },
+    {
+      "id": "snowfield-opera-cordon",
+      "name": "歌剧院封锁区",
+      "category": "地点",
+      "summary": "歌剧院事件后形成的公开管制区，表层口径可被包装为燃气泄漏、结构危险或公共安全调查，实际用于取证和遮蔽魔术痕迹。",
+      "stateLocation": {
+        "region": "斯诺菲尔德",
+        "site": "市区",
+        "detail": "歌剧院周边街区",
+        "boundary": "faction-controlled"
+      },
+      "notes": [
+        "适合投放玩家安全可见痕迹：施工围挡、绕行告示、巡逻增加、新闻口径矛盾。",
+        "不要把封锁区写成自动抓捕陷阱；锁定玩家需证据、时间和监测链。"
+      ]
+    },
+    {
+      "id": "snowfield-central-hospital",
+      "name": "斯诺菲尔德中央医院",
+      "category": "地点",
+      "summary": "城市医疗系统核心，普通伤患、警方调查、魔术遮蔽和苍白骑手相关公共卫生压力可能在此交汇。",
+      "stateLocation": {
+        "region": "斯诺菲尔德",
+        "site": "市区",
+        "detail": "中央医院",
+        "boundary": "normal"
+      },
+      "notes": [
+        "医院是普通社会锚点，不应无准备变成从者大战舞台。",
+        "适合处理伤势、失踪人员、病童椿线索或公共卫生异常。"
+      ]
+    },
+    {
+      "id": "snowfield-desert-crater",
+      "name": "斯诺菲尔德郊外陨坑",
+      "category": "地点",
+      "summary": "沙漠方向的大规模破坏痕迹，可作为吉尔伽美什与恩奇都级别冲突后的公共异常和官方遮蔽对象。",
+      "stateLocation": {
+        "region": "斯诺菲尔德",
+        "site": "郊外沙漠",
+        "detail": "陨坑区域",
+        "boundary": "restricted"
+      },
+      "notes": [
+        "适合作为新闻背景、交通限制和阵营误判来源。",
+        "不要让玩家未接近现场就获得完整战斗真相。"
+      ]
+    },
+    {
+      "id": "snowfield-leyline-monitoring-zone",
+      "name": "斯诺菲尔德灵脉监测网",
+      "category": "地点/系统",
+      "summary": "覆盖市区关键灵脉节点的被动监测系统，用于记录未登记灵基反应、异常魔力释放和时间线重合数据。",
+      "stateLocation": {
+        "region": "斯诺菲尔德",
+        "site": "全域",
+        "detail": "灵脉节点/监测设备",
+        "boundary": "hidden"
+      },
+      "notes": [
+        "监测结果应是范围、波形、阈值和误判，不是即时 GPS 锁定。",
+        "公开高强度魔力释放、令咒级输出或重复波形会提高被标记风险。"
+      ]
     }
   ]
 }
