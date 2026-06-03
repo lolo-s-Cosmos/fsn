@@ -11,6 +11,7 @@ import type {
 import type { ServantFormEvent } from "../../engine/core/servant";
 import type { TurnCommitEvent, TurnCommitInput } from "../../engine/core/turn-commit";
 
+import { createId, getState } from "../../engine/core/state";
 import { normalizeActorConditionEvent } from "./actor-condition-normalizer";
 
 const DEFAULT_SUMMARY = "本轮状态变化。";
@@ -295,9 +296,15 @@ function normalizeOptionalNextBeat(
 
 function normalizeStoryWindow(input: Record<string, unknown>): SceneBeatInput["storyWindow"] {
   const source = isRecord(input["storyWindow"]) ? input["storyWindow"] : input;
+  const currentWindow = getState().public.scene.storyWindow;
+  const completionCriteria = normalizeStringArray(
+    source["completionCriteria"],
+    "storyWindow.completionCriteria",
+    normalizeOptionalStringArray(source["objectives"], "objectives") ?? [],
+  );
   return {
-    currentArcId: assertNonEmptyString(source["currentArcId"], "storyWindow.currentArcId"),
-    currentBeatId: assertNonEmptyString(source["currentBeatId"], "storyWindow.currentBeatId"),
+    currentArcId: normalizeReason(source["currentArcId"], currentWindow?.currentArcId ?? "main"),
+    currentBeatId: normalizeReason(source["currentBeatId"], createId("beat")),
     title: assertNonEmptyString(source["title"], "storyWindow.title"),
     allowedActions: normalizeStringArray(source["allowedActions"], "storyWindow.allowedActions", []),
     forbiddenEscalations: normalizeStringArray(
@@ -305,11 +312,7 @@ function normalizeStoryWindow(input: Record<string, unknown>): SceneBeatInput["s
       "storyWindow.forbiddenEscalations",
       [],
     ),
-    completionCriteria: normalizeStringArray(
-      source["completionCriteria"],
-      "storyWindow.completionCriteria",
-      [],
-    ),
+    completionCriteria,
     nextBeatHints: normalizeStringArray(source["nextBeatHints"], "storyWindow.nextBeatHints", []),
   };
 }

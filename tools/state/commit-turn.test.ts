@@ -149,6 +149,29 @@ void test("commitTurnTool fills transition next beat objectives from completion 
   assert.match(result.content[0]?.text ?? "", /回合已提交/);
 });
 
+void test("commitTurnTool fills missing scene beat ids from current state", () => {
+  resetState();
+
+  const result = commitTurnTool(
+    {
+      summary: "开启缺少 arc 和 beat id 的 beat。",
+      events: [
+        {
+          kind: "scene-beat",
+          event: {
+            kind: "begin-beat",
+            title: "临时落脚",
+            objectives: ["确认门后是否安全"],
+          },
+        },
+      ],
+    },
+    createNoopSessionManager(),
+  );
+
+  assert.match(result.content[0]?.text ?? "", /回合已提交/);
+});
+
 void test("commitTurnTool accepts common event kind aliases", () => {
   resetState();
 
