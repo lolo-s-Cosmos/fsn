@@ -197,7 +197,8 @@ export function registerAllTools(pi: ExtensionAPI): void {
       "- 凭记忆叙述机械事实——以工具返回为准\n" +
       "- 要求或输出 canonical state JSON",
     parameters: Type.Object({}),
-    execute: async () => getStatusTool(),
+    execute: async (_toolCallId, _params, _signal, _onUpdate, ctx) =>
+      getStatusTool(ctx.sessionManager),
   });
 
   pi.registerTool({

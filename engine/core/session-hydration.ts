@@ -1,6 +1,6 @@
 import type { CompactionEntry, SessionEntry } from "@earendil-works/pi-coding-agent";
 
-import { hydrateState, sessionKey } from "./state";
+import { hydrateState, resetState, sessionKey } from "./state";
 
 export function hydrateStateFromSessionEntries(entries: readonly SessionEntry[]): boolean {
   for (let index = entries.length - 1; index >= 0; index--) {
@@ -13,6 +13,37 @@ export function hydrateStateFromSessionEntries(entries: readonly SessionEntry[])
   return false;
 }
 
+export function syncStateFromSessionEntries(entries: readonly SessionEntry[]): boolean {
+  const hydrated = hydrateStateFromSessionEntries(entries);
+  if (!hydrated) {
+    resetState();
+  }
+  return hydrated;
+}
+
+export function syncStateFromSessionManager(sessionManager: unknown): boolean {
+  const branch = getSessionBranch(sessionManager);
+  if (branch === undefined) {
+    return false;
+  }
+  return syncStateFromSessionEntries(branch);
+}
+
+function getSessionBranch(sessionManager: unknown): readonly SessionEntry[] | undefined {
+  if (!isRecord(sessionManager)) {
+    return undefined;
+  }
+  const getBranch = sessionManager["getBranch"];
+  if (typeof getBranch !== "function") {
+    return undefined;
+  }
+  const branch: unknown = getBranch.call(sessionManager);
+  if (!Array.isArray(branch)) {
+    throw new Error("sessionManager.getBranch returned a non-array value.");
+  }
+  return branch as readonly SessionEntry[];
+}
+
 function extractState(entry: SessionEntry | undefined): unknown {
   if (entry === undefined) {
     return undefined;
@@ -22,9 +53,6 @@ function extractState(entry: SessionEntry | undefined): unknown {
   }
   if (entry.type === "compaction") {
     return extractStateFromCompaction(entry);
-  }
-  if (entry.type === "branch_summary") {
-    return extractStateFromSessionData(entry.details);
   }
   if (entry.type === "message" && entry.message.role === "toolResult") {
     return extractStateFromSessionData(entry.message.details?.[sessionKey()]);

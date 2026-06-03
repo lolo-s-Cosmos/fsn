@@ -1,10 +1,15 @@
-import type { SessionEntry } from "@earendil-works/pi-coding-agent";
+import type { BranchSummaryEntry, SessionEntry } from "@earendil-works/pi-coding-agent";
 
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { hydrateStateFromSessionEntries } from "../../engine/core/session-hydration";
-import { cloneState, resetState, sessionKey, toSessionEntry } from "../../engine/core/state";
+import {
+  hydrateStateFromSessionEntries,
+  syncStateFromSessionEntries,
+  syncStateFromSessionManager,
+} from "../../engine/core/session-hydration";
+import { cloneState, resetState, sessionKey } from "../../engine/core/state";
+import { getStatusTool } from "./get-status";
 import { upsertActorTool } from "./upsert-actor";
 import { setScenePresenceTool } from "./set-scene-presence";
 import { updateActorConditionTool } from "./update-actor-condition";
@@ -147,19 +152,111 @@ describe("Fate state tool-level smoke flow", () => {
     assert.equal(sessionManager.entries.length, 2);
   });
 
-  it("ignores old incompatible session entries until a valid Fate state appears", () => {
+  it("ignores branch_summary details when hydrating after tree navigation", () => {
     resetState();
-    const validEntry = createCustomEntry("valid", toSessionEntry(cloneState()));
-    const oldEntry = createCustomEntry("old", { state: { money: 50000, location: "旧状态栏" } });
+    updateSceneTool(
+      {
+        kind: "set-location",
+        location: {
+          region: "斯诺菲尔德",
+          site: "旧分支",
+          detail: "不该被 branch_summary 恢复",
+          boundary: "normal",
+        },
+        reason: "生成旧分支 state",
+      },
+      createMockSessionManager(),
+    );
+    const oldBranchState = cloneState();
+    resetState();
+    const targetEntry = createCustomEntry("target-state", sessionEntryFromCurrentState());
+    const staleSummary = createBranchSummaryEntry("summary", {
+      [sessionKey()]: sessionEntryFromState(oldBranchState),
+    });
 
-    assert.equal(hydrateStateFromSessionEntries([oldEntry, validEntry]), true);
-    assert.equal(cloneState().public.protagonistActorId, "protagonist");
+    assert.equal(hydrateStateFromSessionEntries([targetEntry, staleSummary]), true);
+    const state = cloneState();
+    assert.equal(state.public.scene.location.region, "冬木市");
+    assert.equal(state.public.scene.location.site, "深山镇");
+  });
+
+  it("resets in-memory state when the current branch has no Fate state", () => {
+    resetState();
+    updateSceneTool(
+      {
+        kind: "set-location",
+        location: {
+          region: "斯诺菲尔德",
+          site: "歌剧院",
+          detail: "回滚前旧地点",
+          boundary: "normal",
+        },
+        reason: "制造需要被回滚清除的状态",
+      },
+      createMockSessionManager(),
+    );
+
+    assert.equal(syncStateFromSessionEntries([]), false);
+    assert.equal(cloneState().public.scene.location.region, "冬木市");
+    assert.equal(cloneState().public.scene.location.site, "深山镇");
+  });
+
+  it("get_status rehydrates from the active session branch before reading state", () => {
+    resetState();
+    const sessionManager = createMockSessionManager();
+    updateSceneTool(
+      {
+        kind: "set-location",
+        location: {
+          region: "斯诺菲尔德",
+          site: "歌剧院",
+          detail: "回滚前旧地点",
+          boundary: "normal",
+        },
+        reason: "制造旧内存状态",
+      },
+      createMockSessionManager(),
+    );
+    resetState();
+    updateSceneTool(
+      {
+        kind: "set-location",
+        location: {
+          region: "冬木市",
+          site: "冬木教会",
+          detail: "礼拜堂",
+          boundary: "normal",
+        },
+        reason: "写入当前 branch 应恢复的状态",
+      },
+      sessionManager,
+    );
+    updateSceneTool(
+      {
+        kind: "set-location",
+        location: {
+          region: "斯诺菲尔德",
+          site: "住宅区",
+          detail: "错误残留内存",
+          boundary: "normal",
+        },
+        reason: "再次污染全局内存",
+      },
+      createMockSessionManager(),
+    );
+
+    assert.equal(syncStateFromSessionManager(sessionManager), true);
+    const result = getStatusTool(sessionManager);
+
+    assert.match(textOf(result), /冬木市 · 冬木教会 · 礼拜堂/);
+    assert.doesNotMatch(textOf(result), /错误残留内存/);
   });
 });
 
 interface MockSessionManager {
   entries: MockSessionEntry[];
   appendCustomEntry(customType: string, data?: unknown): string;
+  getBranch(): readonly MockSessionEntry[];
 }
 
 type MockSessionEntry = SessionEntry;
@@ -173,6 +270,29 @@ function createMockSessionManager(): MockSessionManager {
       this.entries.push(entry);
       return entryId;
     },
+    getBranch(): readonly MockSessionEntry[] {
+      return this.entries;
+    },
+  };
+}
+
+function sessionEntryFromCurrentState(): ReturnType<typeof sessionEntryFromState> {
+  return sessionEntryFromState(cloneState());
+}
+
+function sessionEntryFromState(state: ReturnType<typeof cloneState>): { v: number; turn: number; state: unknown } {
+  return { v: 1, turn: 0, state };
+}
+
+function createBranchSummaryEntry(id: string, details: unknown): BranchSummaryEntry {
+  return {
+    type: "branch_summary",
+    id,
+    parentId: null,
+    timestamp: "2004-01-30T07:00:00.000Z",
+    fromId: "old-leaf",
+    summary: "旧分支摘要",
+    details,
   };
 }
 

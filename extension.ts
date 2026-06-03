@@ -9,7 +9,7 @@ import type { ContextEvent, ExtensionAPI } from "@earendil-works/pi-coding-agent
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { hydrateStateFromSessionEntries } from "./engine/core/session-hydration";
+import { syncStateFromSessionManager } from "./engine/core/session-hydration";
 import { buildSystemPrompt, injectGmPromptMessages } from "./engine/gm-prompt/injection";
 import { registerAllTools } from "./tools/registry";
 
@@ -24,16 +24,21 @@ export default function extension(pi: ExtensionAPI): void {
     return { systemPrompt: buildSystemPrompt(event.systemPrompt) };
   });
 
-  pi.on("context", async (event) => {
+  pi.on("context", async (event, ctx) => {
+    syncStateFromSessionManager(ctx.sessionManager);
     return { messages: injectGmPromptMessages<ContextEvent["messages"][number]>(event.messages) };
   });
 
   pi.on("session_start", async (_event, ctx) => {
-    hydrateStateFromSessionEntries(ctx.sessionManager.getBranch());
+    syncStateFromSessionManager(ctx.sessionManager);
   });
 
   pi.on("session_tree", async (_event, ctx) => {
-    hydrateStateFromSessionEntries(ctx.sessionManager.getBranch());
+    syncStateFromSessionManager(ctx.sessionManager);
+  });
+
+  pi.on("tool_call", async (_event, ctx) => {
+    syncStateFromSessionManager(ctx.sessionManager);
   });
 
   registerAllTools(pi);
