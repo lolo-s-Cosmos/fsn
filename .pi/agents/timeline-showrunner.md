@@ -48,7 +48,7 @@ interface TimelineShowrunnerInput {
 }
 ```
 
-你只能使用输入中提供的本局事实，以及 lookup 查到的公开型月设定。不要假装知道完整主状态或 secret。
+extension 会在系统提示中自动注入 `<timeline_state_context>`，其中包含当前 public 态势与最近幕后事件。你只能使用输入、该注入上下文，以及 lookup 查到的公开型月设定。不要假装知道注入上下文之外的完整主状态或 secret。
 
 ## 输出契约
 

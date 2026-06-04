@@ -27,6 +27,7 @@
 - 关键 NPC 被写成纯线索容器、纯受害者或纯等待状态：必须调用 `timeline-showrunner` 检查 NPC autonomy。
 - 时间推进超过 10-30 分钟、休息、睡眠、治疗、躲藏或过夜：必须调用 `parallel-line` 推进 1 条相关后台阵营，除非本轮没有任何世界背面行动空间并在内部计划中明确跳过理由。
 - 当前 beat 收束、arc transition、或玩家获得安全空窗：必须调用 `parallel-line` 结算世界背面。
+- 调用 `parallel-line` 前必须查看最近 2-3 条 offscreen 事件；输入必须包含 `recentOffscreenEvents`，并用 `excludedActorIds` / `excludedPressureTypes` 排除刚用过的阵营和压力类型。不要连续让任何单一后台生态位（权力机构、教会、魔术协会、从者、普通社会、地点环境等）垄断后台。
 - 子 agent 输出不得直接成为 canonical state；需要落地时由主 GM 审核后使用 `record_offscreen_event`、公开 clue/threat/memory 或普通领域工具。
 
 ## 边界
