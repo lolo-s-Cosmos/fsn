@@ -43,7 +43,7 @@ if [ ! -f .pi/agent/auth.json ] && [ -f "$HOME/.pi/agent/auth.json" ]; then
 fi
 
 if [ ! -f .pi/agent/settings.json ]; then
-  cat > .pi/agent/settings.json <<-'EOF'
+  cat >.pi/agent/settings.json <<-'EOF'
 {
   "theme": "dark"
 }
@@ -84,6 +84,7 @@ pi \
   --no-skills \
   --skill ./skills/ \
   -e ./extension.ts \
+  -e ./extensions/compaction-policy/index.ts \
   --session-dir ./sessions \
   --no-context-files \
   "$@" || pi_exit=$?
