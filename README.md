@@ -39,6 +39,12 @@ pnpm install
 TAVERN2AGENT_DEV=1 ./start.sh
 ```
 
+## License
+
+GPL-3.0-or-later. See `LICENSE`.
+
+这是同人实验项目；Fate / TYPE-MOON 相关设定归各自权利方所有。
+
 ## Package
 
 ```bash

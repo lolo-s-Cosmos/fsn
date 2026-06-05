@@ -8,7 +8,7 @@
     "pi-card",
     "pi-package"
   ],
-  "license": "UNLICENSED",
+  "license": "GPL-3.0-or-later",
   "files": [
     "agents/",
     "data/",
@@ -28,7 +28,8 @@
     "pnpm-workspace.yaml",
     "tsconfig.json",
     ".oxlintrc.json",
-    ".oxfmtrc.json"
+    ".oxfmtrc.json",
+    "LICENSE"
   ],
   "type": "module",
   "scripts": {
