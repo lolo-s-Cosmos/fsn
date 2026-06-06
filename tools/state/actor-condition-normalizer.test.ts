@@ -78,6 +78,37 @@ void test("normalizeActorConditionEvent reports invalid resolve outcome clearly"
   );
 });
 
+void test("normalizeActorConditionEvent reports invalid condition enums clearly", () => {
+  assert.throws(
+    () =>
+      normalizeActorConditionEvent({
+        kind: "add-wound",
+        actorId: "protagonist",
+        severity: "dangerous",
+        text: "手背擦伤。",
+        source: "玻璃碎片",
+        recoverable: true,
+      }),
+    /非法 severity.*minor, moderate, severe, critical/,
+  );
+
+  assert.throws(
+    () =>
+      normalizeActorConditionEvent({
+        kind: "add-tracked-item",
+        label: "暗金色碎屑",
+        itemKind: "clue",
+        holderActorId: "protagonist",
+        ownerActorId: "protagonist",
+        condition: "intact",
+        visibility: "player-known",
+        notes: [],
+        reason: "模型误填物品类型",
+      }),
+    /非法 itemKind.*mundane, weapon, mystic-code, document, key-item, other/,
+  );
+});
+
 void test("commitTurnTool accepts actor-condition update-outfit alias", () => {
   resetState();
 

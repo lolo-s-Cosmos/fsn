@@ -1,36 +1,144 @@
 import type { ActorConditionEvent } from "../../engine/core/actor-condition";
-import type { OutfitState } from "../../engine/core/state";
+import type { MagecraftCircuitState, OutfitState, TrackedItemState, WoundSeverity } from "../../engine/core/state";
+
+import { assertFateRank } from "../../engine/core/fate-rank";
+import { assertNonNegativeInteger } from "../../engine/core/state";
+import { assertOneOfString } from "./domain-assert";
+
+const ACTOR_CONDITION_KINDS = [
+  "add-wound",
+  "update-wound",
+  "add-affliction",
+  "add-permanent-effect",
+  "update-magecraft-circuits",
+  "resolve-condition",
+  "change-outfit",
+  "transfer-tracked-item",
+  "update-tracked-item",
+  "add-tracked-item",
+] as const;
+
+const WOUND_SEVERITIES = ["minor", "moderate", "severe", "critical"] as const satisfies readonly WoundSeverity[];
+const CIRCUIT_STATUSES = ["normal", "overheated", "depleted", "dormant", "damaged"] as const satisfies readonly MagecraftCircuitState["status"][];
+const CONDITION_KINDS = ["wound", "affliction"] as const;
+const ITEM_KINDS = ["mundane", "weapon", "mystic-code", "document", "key-item", "other"] as const satisfies readonly TrackedItemState["kind"][];
+const ITEM_CONDITIONS = ["intact", "damaged", "broken", "spent", "unknown"] as const satisfies readonly TrackedItemState["condition"][];
+const ITEM_VISIBILITIES = ["player-known", "suspected"] as const satisfies readonly TrackedItemState["visibility"][];
 
 export function normalizeActorConditionEvent(
   params: unknown,
   fallbackReason?: string,
 ): ActorConditionEvent {
   const input = assertRecord(params, "actor-condition 参数");
-  const kind = assertString(input["kind"], "kind");
-  if (isOutfitAlias(kind) || isMistakenOutfitUpdate(input, kind)) {
+  const kindText = assertString(input["kind"], "kind");
+  if (isOutfitAlias(kindText) || isMistakenOutfitUpdate(input, kindText)) {
     return normalizeChangeOutfit(input, fallbackReason);
   }
-  if (kind === "update-wound" && normalizeOptionalString(input["conditionId"]) === null) {
-    throw new Error(
-      "update-wound 必须提供已有 wound 的 conditionId；更换服装/外观请使用 kind=change-outfit。",
-    );
+
+  const kind = assertOneOfString(input["kind"], ACTOR_CONDITION_KINDS, "actor-condition.kind");
+  switch (kind) {
+    case "add-wound":
+      return {
+        kind,
+        actorId: assertString(input["actorId"], "actorId"),
+        severity: assertOneOfString(input["severity"], WOUND_SEVERITIES, "severity"),
+        text: assertString(input["text"], "text"),
+        source: assertString(input["source"], "source"),
+        recoverable: assertBoolean(input["recoverable"], "recoverable"),
+      };
+    case "update-wound": {
+      const conditionId = normalizeOptionalString(input["conditionId"]);
+      if (conditionId === null) {
+        throw new Error(
+          "update-wound 必须提供已有 wound 的 conditionId；更换服装/外观请使用 kind=change-outfit。",
+        );
+      }
+      return {
+        kind,
+        actorId: assertString(input["actorId"], "actorId"),
+        conditionId,
+        severity: assertOptionalOneOf(input["severity"], WOUND_SEVERITIES, "severity"),
+        text: normalizeOptionalString(input["text"]) ?? undefined,
+        treatment: normalizeOptionalString(input["treatment"]) ?? undefined,
+        recoverable: normalizeOptionalBoolean(input["recoverable"], "recoverable"),
+        reason: normalizeReason(input["reason"], fallbackReason),
+      };
+    }
+    case "add-affliction":
+      return {
+        kind,
+        actorId: assertString(input["actorId"], "actorId"),
+        text: assertString(input["text"], "text"),
+        source: assertString(input["source"], "source"),
+        expectedDuration: normalizeNullableString(input["expectedDuration"], "expectedDuration"),
+      };
+    case "add-permanent-effect":
+      return {
+        kind,
+        actorId: assertString(input["actorId"], "actorId"),
+        text: assertString(input["text"], "text"),
+        source: assertString(input["source"], "source"),
+        mechanicalEffect: assertString(input["mechanicalEffect"], "mechanicalEffect"),
+      };
+    case "update-magecraft-circuits":
+      return {
+        kind,
+        actorId: assertString(input["actorId"], "actorId"),
+        circuits: assertCircuits(input["circuits"]),
+        reason: normalizeReason(input["reason"], fallbackReason),
+      };
+    case "resolve-condition":
+      return {
+        kind,
+        actorId: assertString(input["actorId"], "actorId"),
+        conditionKind: assertOneOfString(input["conditionKind"], CONDITION_KINDS, "conditionKind"),
+        conditionId: assertString(input["conditionId"], "conditionId"),
+        outcome: assertResolveOutcome(input["outcome"]),
+        reason: normalizeReason(input["reason"], fallbackReason),
+      };
+    case "change-outfit":
+      return normalizeChangeOutfit(input, fallbackReason);
+    case "transfer-tracked-item":
+      return {
+        kind,
+        itemId: assertString(input["itemId"], "itemId"),
+        holderActorId: normalizeNullableString(input["holderActorId"], "holderActorId"),
+        reason: normalizeReason(input["reason"], fallbackReason),
+      };
+    case "update-tracked-item":
+      return {
+        kind,
+        itemId: assertString(input["itemId"], "itemId"),
+        condition: assertOptionalOneOf(input["condition"], ITEM_CONDITIONS, "condition"),
+        holderActorId: normalizeOptionalNullableString(input["holderActorId"], "holderActorId"),
+        ownerActorId: normalizeOptionalNullableString(input["ownerActorId"], "ownerActorId"),
+        notes: normalizeOptionalStringArray(input["notes"], "notes"),
+        reason: normalizeReason(input["reason"], fallbackReason),
+      };
+    case "add-tracked-item":
+      return {
+        kind,
+        label: assertString(input["label"], "label"),
+        itemKind: assertOneOfString(input["itemKind"], ITEM_KINDS, "itemKind"),
+        holderActorId: normalizeNullableString(input["holderActorId"], "holderActorId"),
+        ownerActorId: normalizeNullableString(input["ownerActorId"], "ownerActorId"),
+        condition: assertOneOfString(input["condition"], ITEM_CONDITIONS, "condition"),
+        visibility: assertOneOfString(input["visibility"], ITEM_VISIBILITIES, "visibility"),
+        notes: assertStringArray(input["notes"], "notes"),
+        reason: normalizeReason(input["reason"], fallbackReason),
+      };
   }
-  const reason = normalizeOptionalString(input["reason"]);
-  const normalizedInput = normalizeOutcome(input, kind);
-  return {
-    ...normalizedInput,
-    kind,
-    ...(reason !== null || fallbackReason !== undefined
-      ? { reason: normalizeReason(input["reason"], fallbackReason) }
-      : {}),
-  } as unknown as ActorConditionEvent; // safe: non-outfit variants keep engine validation; this boundary only normalizes LLM-facing aliases/default noise.
 }
 
-function normalizeOutcome(input: Record<string, unknown>, kind: string): Record<string, unknown> {
-  if (kind === "resolve-condition") {
-    return { ...input, outcome: assertResolveOutcome(input["outcome"]) };
-  }
-  return Object.fromEntries(Object.entries(input).filter(([key]) => key !== "outcome"));
+function assertCircuits(value: unknown): MagecraftCircuitState {
+  const circuits = assertRecord(value, "circuits");
+  return {
+    count: assertString(circuits["count"], "circuits.count"),
+    quality: circuits["quality"] === "none" ? "none" : assertFateRank(circuits["quality"], "circuits.quality"),
+    od: assertNonNegativeInteger(circuits["od"], "circuits.od"),
+    status: assertOneOfString(circuits["status"], CIRCUIT_STATUSES, "circuits.status"),
+    traits: assertStringArray(circuits["traits"], "circuits.traits"),
+  };
 }
 
 function assertResolveOutcome(value: unknown): "recovered" | "stabilized" {
@@ -79,6 +187,59 @@ function normalizeReason(value: unknown, fallbackReason: string | undefined): st
     return assertString(fallbackReason, "reason");
   }
   throw new Error("reason 必须是非空字符串。");
+}
+
+function assertOptionalOneOf<const T extends readonly string[]>(
+  value: unknown,
+  allowed: T,
+  fieldName: string,
+): T[number] | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  return assertOneOfString(value, allowed, fieldName);
+}
+
+function normalizeOptionalNullableString(value: unknown, fieldName: string): string | null | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  return normalizeNullableString(value, fieldName);
+}
+
+function normalizeNullableString(value: unknown, fieldName: string): string | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  return assertString(value, fieldName);
+}
+
+function normalizeOptionalBoolean(value: unknown, fieldName: string): boolean | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  return assertBoolean(value, fieldName);
+}
+
+function assertBoolean(value: unknown, fieldName: string): boolean {
+  if (typeof value !== "boolean") {
+    throw new Error(`${fieldName} 必须是 boolean。`);
+  }
+  return value;
+}
+
+function normalizeOptionalStringArray(value: unknown, fieldName: string): string[] | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  return assertStringArray(value, fieldName);
+}
+
+function assertStringArray(value: unknown, fieldName: string): string[] {
+  if (!Array.isArray(value)) {
+    throw new Error(`${fieldName} 必须是字符串数组。`);
+  }
+  return value.map((entry, index) => assertString(entry, `${fieldName}[${index}]`));
 }
 
 function assertRecord(value: unknown, fieldName: string): Record<string, unknown> {

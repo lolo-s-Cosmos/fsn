@@ -13,3 +13,45 @@ void test("updateServantForm reports locked-field attempts clearly", () => {
     /锁定字段.*override_locked_fact/,
   );
 });
+
+void test("updateServantForm reports invalid contract enums clearly", () => {
+  assert.throws(
+    () =>
+      updateServantFormTool(
+        {
+          kind: "change-contract",
+          actorId: "test-saber",
+          contract: {
+            masterActorId: "protagonist",
+            masterName: "绫香",
+            status: "healthy",
+            manaSupply: "sufficient",
+          },
+          reason: "模型误填契约状态",
+        },
+        undefined,
+      ),
+    /非法 contract\.status.*stable, weak, cut, masterless/,
+  );
+});
+
+void test("updateServantForm reports invalid affected params clearly", () => {
+  assert.throws(
+    () =>
+      updateServantFormTool(
+        {
+          kind: "add-param-modifier",
+          actorId: "test-saber",
+          modifier: {
+            source: "临时强化",
+            affectedParams: ["speed"],
+            summary: "速度提升。",
+            expiresAt: null,
+          },
+          reason: "模型误填参数名",
+        },
+        undefined,
+      ),
+    /非法 modifier\.affectedParams\[\].*strength, endurance, agility, mana, luck, noblePhantasm/,
+  );
+});

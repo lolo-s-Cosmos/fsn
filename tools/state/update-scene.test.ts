@@ -64,3 +64,37 @@ void test("updateSceneTool explains missing objective selector after blank norma
     /必须提供 objectiveId 或 objectiveSummary/,
   );
 });
+
+void test("updateSceneTool reports invalid scene enums before state mutation", () => {
+  assert.throws(
+    () =>
+      updateSceneTool(
+        {
+          kind: "add-threat",
+          summary: "门外脚步声逼近。",
+          severity: "dangerous",
+          reason: "模型误填威胁等级",
+        },
+        undefined,
+      ),
+    /非法 severity.*允许值: low, medium, high, lethal/,
+  );
+
+  assert.throws(
+    () =>
+      updateSceneTool(
+        {
+          kind: "set-location",
+          location: {
+            region: "斯诺菲尔德",
+            site: "旧厂房",
+            detail: "后门",
+            boundary: "unsafe",
+          },
+          reason: "模型误填边界类型",
+        },
+        undefined,
+      ),
+    /非法 location\.boundary.*normal, bounded-field, reality-marble, otherworld/,
+  );
+});

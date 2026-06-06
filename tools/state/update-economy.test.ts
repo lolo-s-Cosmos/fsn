@@ -37,3 +37,37 @@ void test("updateEconomyTool renames a purse", () => {
 
   assert.equal(getState().public.economy.accessibleFunds[0]?.label, "绫香的钱包");
 });
+
+void test("updateEconomy reports invalid enum-like fields clearly", () => {
+  assert.throws(
+    () =>
+      updateEconomyTool(
+        {
+          kind: "gain-money",
+          purseId: "purse-protagonist-cash",
+          amount: 100,
+          source: "windfall",
+          counterparty: "路人",
+          reason: "模型误填资金来源",
+        },
+        undefined,
+      ),
+    /非法 source.*earned, refund, found, gift, withdrawal, sale, quest-reward/,
+  );
+
+  assert.throws(
+    () =>
+      updateEconomyTool(
+        {
+          kind: "add-purse",
+          ownerActorId: "protagonist",
+          label: "备用现金",
+          amount: 100,
+          access: "public",
+          reason: "模型误填访问权限",
+        },
+        undefined,
+      ),
+    /非法 access.*held, shared, requires-permission/,
+  );
+});
