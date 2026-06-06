@@ -53,6 +53,14 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
 看到右下角类似 `0.0%` 和一个方块时，那通常是 pi 的上下文/状态 UI，不是下载进度条。首次启动如果没有 API/model 配置，界面可能看起来像“卡住”，但实际是在等你输入命令或配置模型渠道。
 
+## Model Notes
+
+本项目强依赖模型的工具调用纪律。它不是普通 prompt 角色卡：移动、过夜、花钱、受伤、揭示真名、推进 scene beat 等状态变化都应该通过工具落地。
+
+推荐使用能稳定 tool calling、愿意根据工具错误重试的模型。模型可以犯参数错，工具会拒绝坏状态并给出可用选项；但如果模型经常跳过工具直接续写，体验会退化成普通聊天卡，状态和剧情会开始分家。
+
+已重点测试：GPT-5.5。也测试过 Opus 4.5、DeepSeek V4 Pro。项目子代理默认使用 DeepSeek V4 Pro，可自行调整。
+
 ## Local State
 
 首次运行会在项目内创建隔离配置目录：
