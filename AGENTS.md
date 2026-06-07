@@ -117,7 +117,7 @@ type SceneResult =
 不要把工具设计成“把状态改一下”。工具必须表达世界里发生的事：
 
 - `update_scene`：时间、地点、scene objective / threat 的领域事件。
-- `start_scene_beat` / `finish_current_beat`：玩家当前可行动窗口的开启与收口。
+- `progress_scene_beat`：玩家当前 Scene Beat 行动窗口的开启与收口。
 - `update_economy`：有账户、有来源、有 reason 的资金事件；修账户名用 `rename-purse`，不要伪造 spend/gain。
 - `update_actor_condition`：wound / affliction / outfit / tracked item 等可审计条件变化。
 - `reveal_secret`：隐藏真名、宝具、动机的配置与揭示；不能用叙事直接泄密。

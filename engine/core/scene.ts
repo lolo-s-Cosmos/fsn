@@ -448,7 +448,7 @@ function findObjectiveBySummary(
 function formatActiveBeatExistsError(storyWindow: StoryWindowState): string {
   return [
     `无法开始新的 Scene Beat：当前已有 active beat ${storyWindow.currentBeatId}（${storyWindow.title}）。`,
-    "同一时间只能有一个 active storyWindow；请先使用 finish_current_beat 完成当前 beat，或用 transitionSceneBeat 关闭当前 beat 后再开启下一个。",
+    "同一时间只能有一个 active storyWindow；请先使用 progress_scene_beat kind=complete 收口当前 beat。",
   ].join("\n");
 }
 
@@ -478,7 +478,7 @@ function formatMissingObjectiveSelectorError(
 ): string {
   return [
     "resolve-objective 必须提供 objectiveId 或 objectiveSummary。",
-    "如果当前 beat 已全部完成，优先使用 finish_current_beat；非常规组合才用 commit_turn 内部 scene-beat transition-beat。",
+    "如果当前 beat 已全部完成，优先使用 progress_scene_beat kind=complete。",
     "可用 objectiveId / objectiveSummary：",
     ...objectives.map((objective) => `- ${objective.id}: ${objective.summary}`),
   ].join("\n");

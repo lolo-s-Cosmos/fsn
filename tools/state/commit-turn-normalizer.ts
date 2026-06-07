@@ -1,17 +1,10 @@
 import type { ScenePresenceInput } from "../../engine/core/actor";
 import type { EconomyEvent } from "../../engine/core/economy";
 import type { MemoryEvent } from "../../engine/core/memory";
-import type {
-  SceneBeatInput,
-  SceneBeatMoveInput,
-  SceneBeatTransitionInput,
-  SceneBeatTurnEvent,
-  SceneEvent,
-} from "../../engine/core/scene";
+import type { SceneEvent } from "../../engine/core/scene";
 import type { ServantFormEvent } from "../../engine/core/servant";
 import type { TurnCommitEvent, TurnCommitInput } from "../../engine/core/turn-commit";
 
-import { createId, getState } from "../../engine/core/state";
 import { normalizeActorConditionEvent } from "./actor-condition-normalizer";
 
 const DEFAULT_SUMMARY = "本轮状态变化。";
@@ -40,8 +33,6 @@ function normalizeTurnCommitEvent(value: unknown, summary: string): TurnCommitEv
           summary,
         ),
       };
-    case "scene-beat":
-      return { kind: normalizedKind, event: normalizeSceneBeatTurnEvent(event, summary) };
     case "actor-condition":
       return {
         kind: normalizedKind,
@@ -68,7 +59,7 @@ function normalizeTurnCommitEvent(value: unknown, summary: string): TurnCommitEv
       return { kind: normalizedKind, event: normalizeMemoryTurnEvent(event) };
     default:
       throw new Error(
-        `非法 commit_turn event.kind: ${formatUnknown(event["kind"])}。允许: scene / scene-presence / scene-beat / actor-condition / servant-form / economy / memory。`,
+        `非法 commit_turn event.kind: ${formatUnknown(event["kind"])}。允许: scene / scene-presence / actor-condition / servant-form / economy / memory。`,
       );
   }
 }
@@ -84,11 +75,6 @@ function normalizeTurnEventKind(rawKind: unknown, event: Record<string, unknown>
     case "set-scene-presence":
     case "presence":
       return "scene-presence";
-    case "scene-beat":
-    case "start-scene-beat":
-    case "finish-current-beat":
-    case "beat":
-      return "scene-beat";
     case "actor-condition":
     case "update-actor-condition":
     case "condition":
@@ -129,9 +115,6 @@ function inferTurnEventKindFromPayload(event: Record<string, unknown>): TurnComm
       return "scene";
     case "set-scene-presence":
       return "scene-presence";
-    case "begin-beat":
-    case "transition-beat":
-      return "scene-beat";
     case "record-major-event":
     case "record-pinned-fact":
     case "record-daily-summary":
@@ -141,7 +124,7 @@ function inferTurnEventKindFromPayload(event: Record<string, unknown>): TurnComm
       return "economy";
     default:
       throw new Error(
-        `非法 commit_turn event.kind: ${formatUnknown(event["kind"])}。允许: scene / scene-presence / scene-beat / actor-condition / servant-form / economy / memory。`,
+        `非法 commit_turn event.kind: ${formatUnknown(event["kind"])}。允许: scene / scene-presence / actor-condition / servant-form / economy / memory。`,
       );
   }
 }
@@ -202,146 +185,6 @@ function normalizeScenePresenceInput(
   };
 }
 
-function normalizeSceneBeatTurnEvent(
-  event: Record<string, unknown>,
-  summary: string,
-): SceneBeatTurnEvent {
-  const payload = extractDomainEvent(event, "scene-beat.event");
-  const beatKind = payload["kind"];
-  const input = isRecord(payload["input"]) ? payload["input"] : payload;
-  switch (beatKind) {
-    case "begin-beat":
-      return { kind: beatKind, input: normalizeSceneBeatInput(input, event, summary) };
-    case "move-location":
-      return { kind: beatKind, input: normalizeSceneBeatMoveInput(input, event, summary) };
-    case "transition-beat":
-      return { kind: beatKind, input: normalizeSceneBeatTransitionInput(input, event, summary) };
-    default:
-      throw new Error(`非法 scene-beat.kind: ${formatUnknown(beatKind)}。`);
-  }
-}
-
-function normalizeSceneBeatInput(
-  input: Record<string, unknown>,
-  outer: Record<string, unknown>,
-  summary: string,
-): SceneBeatInput {
-  const storyWindow = normalizeStoryWindow(input);
-  return {
-    storyWindow,
-    objectives: normalizeSceneBeatObjectives(
-      firstDefined(outer["objectives"], input["objectives"]),
-      storyWindow["completionCriteria"],
-    ),
-    threats: valueOrOptionalArray(outer["threats"], input["threats"]) as SceneBeatInput["threats"],
-    presentActorIds: normalizeOptionalStringArray(
-      firstDefined(outer["presentActorIds"], input["presentActorIds"]),
-      "presentActorIds",
-    ),
-    allyActorIds: normalizeOptionalStringArray(
-      firstDefined(outer["allyActorIds"], input["allyActorIds"]),
-      "allyActorIds",
-    ),
-    situation: firstDefined(outer["situation"], input["situation"]) as SceneBeatInput["situation"],
-    reason: normalizeReason(firstDefined(input["reason"], outer["reason"]), summary),
-  };
-}
-
-function normalizeSceneBeatMoveInput(
-  input: Record<string, unknown>,
-  outer: Record<string, unknown>,
-  summary: string,
-): SceneBeatMoveInput {
-  return {
-    ...normalizeSceneBeatInput(input, outer, summary),
-    location: firstDefined(outer["location"], input["location"]) as SceneBeatMoveInput["location"],
-    elapsedMinutes: firstDefined(
-      outer["elapsedMinutes"],
-      input["elapsedMinutes"],
-    ) as SceneBeatMoveInput["elapsedMinutes"],
-  };
-}
-
-function normalizeSceneBeatTransitionInput(
-  input: Record<string, unknown>,
-  outer: Record<string, unknown>,
-  summary: string,
-): SceneBeatTransitionInput {
-  const reason = normalizeReason(firstDefined(input["reason"], outer["reason"]), summary);
-  const nextBeatRaw = firstDefined(input["nextBeat"], outer["nextBeat"]);
-  return {
-    completedBeatId: firstDefined(
-      input["completedBeatId"],
-      outer["completedBeatId"],
-    ) as SceneBeatTransitionInput["completedBeatId"],
-    resolvedObjectiveIds: valueOrOptionalArray(
-      outer["resolvedObjectiveIds"],
-      input["resolvedObjectiveIds"],
-    ) as SceneBeatTransitionInput["resolvedObjectiveIds"],
-    resolvedObjectiveSummaries: valueOrOptionalArray(
-      outer["resolvedObjectiveSummaries"],
-      input["resolvedObjectiveSummaries"],
-    ) as SceneBeatTransitionInput["resolvedObjectiveSummaries"],
-    resolveAllObjectives: firstDefined(
-      outer["resolveAllObjectives"],
-      input["resolveAllObjectives"],
-    ) as SceneBeatTransitionInput["resolveAllObjectives"],
-    nextBeat: normalizeOptionalNextBeat(nextBeatRaw, reason),
-    memoryPrompt: firstDefined(
-      outer["memoryPrompt"],
-      input["memoryPrompt"],
-    ) as SceneBeatTransitionInput["memoryPrompt"],
-    reason,
-  };
-}
-
-function normalizeOptionalNextBeat(
-  value: unknown,
-  summary: string,
-): SceneBeatInput | null | undefined {
-  if (value === undefined) {
-    return undefined;
-  }
-  if (value === null) {
-    return null;
-  }
-  return normalizeSceneBeatInput(assertRecord(value, "scene-beat.nextBeat"), {}, summary);
-}
-
-function normalizeStoryWindow(input: Record<string, unknown>): SceneBeatInput["storyWindow"] {
-  const source = isRecord(input["storyWindow"]) ? input["storyWindow"] : input;
-  const currentWindow = getState().public.scene.storyWindow;
-  const completionCriteria = normalizeStringArray(
-    source["completionCriteria"],
-    "storyWindow.completionCriteria",
-    normalizeOptionalStringArray(source["objectives"], "objectives") ?? [],
-  );
-  return {
-    currentArcId: normalizeReason(source["currentArcId"], currentWindow?.currentArcId ?? "main"),
-    currentBeatId: normalizeReason(source["currentBeatId"], createId("beat")),
-    title: assertNonEmptyString(source["title"], "storyWindow.title"),
-    allowedActions: normalizeStringArray(source["allowedActions"], "storyWindow.allowedActions", []),
-    forbiddenEscalations: normalizeStringArray(
-      source["forbiddenEscalations"],
-      "storyWindow.forbiddenEscalations",
-      [],
-    ),
-    completionCriteria,
-    nextBeatHints: normalizeStringArray(source["nextBeatHints"], "storyWindow.nextBeatHints", []),
-  };
-}
-
-function normalizeSceneBeatObjectives(
-  objectives: unknown,
-  completionCriteria: unknown,
-): string[] {
-  const objectiveArray = normalizeOptionalStringArray(objectives, "objectives");
-  if (objectiveArray !== undefined && objectiveArray.length > 0) {
-    return objectiveArray;
-  }
-  return normalizeStringArray(completionCriteria, "storyWindow.completionCriteria", []);
-}
-
 function normalizeSummary(value: unknown, events: readonly unknown[]): string {
   const explicit = normalizeOptionalString(value);
   if (explicit !== null) {
@@ -389,13 +232,6 @@ function normalizeReason(value: unknown, fallback: string): string {
   return normalizeOptionalString(value) ?? fallback;
 }
 
-function normalizeOptionalStringArray(value: unknown, fieldName: string): string[] | undefined {
-  if (value === undefined) {
-    return undefined;
-  }
-  return normalizeStringArray(value, fieldName, undefined);
-}
-
 function normalizeStringArray(
   value: unknown,
   fieldName: string,
@@ -416,15 +252,6 @@ function assertNonEmptyString(value: unknown, fieldName: string): string {
 
 function trustDomainEvent<T>(event: Record<string, unknown>): T {
   return event as unknown as T; // safe: tool adapter only normalizes common LLM omissions; owning engine module validates the domain event.
-}
-
-function valueOrOptionalArray(primary: unknown, fallback: unknown): unknown[] | undefined {
-  const value = firstDefined(primary, fallback);
-  return Array.isArray(value) ? value : undefined;
-}
-
-function firstDefined(primary: unknown, fallback: unknown): unknown {
-  return primary === undefined ? fallback : primary;
 }
 
 function normalizeOptionalString(value: unknown): string | null {

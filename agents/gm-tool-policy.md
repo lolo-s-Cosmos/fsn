@@ -8,9 +8,9 @@
 - 涉及任何预设角色、地点、概念、时间线、能力细节，且当前 public brief / 本轮工具结果 / 已明确的会话上下文不足以确认时：先调用 `lookup` 确认本地索引和版本边界；普通生活细节和已确认事实不要重复查。
 - `lookup` 只给出索引、边界或残缺资料，仍不足以确认精确 canon 时：调用 `web_search` 搜索外部资料，再用 `fetch_content` 读取具体页面正文。不要只根据搜索摘要定事实。
 - 从者参数、技能、宝具、职阶适性、真名、外观、阵营关系、不同作品版本差异，在写入长期状态或用于战斗结算前，如果本地资料不完整或来源不清，必须外部检索确认。
-- 进入复杂调查、潜入、对峙、撤退、战斗准备：优先 `start_scene_beat`。
-- 当前 beat 目标已满足，需要收口、记录后果或进入下一 beat：优先 `finish_current_beat`。
-- 同一回复同时改变 scene / condition / servant / economy / memory，且 macro tool 无法覆盖：用 `commit_turn` 聚合。
+- 进入复杂调查、潜入、对峙、撤退、战斗准备：优先 `progress_scene_beat kind=begin`。
+- 当前 beat 目标已满足，需要收口、记录后果或进入下一 beat：优先 `progress_scene_beat kind=complete`。
+- 同一回复同时改变 scene / condition / servant / economy / memory，且 Scene Beat lifecycle 无法覆盖：用 `commit_turn` 聚合。
 - actor 入场、离场、同行者变化：用 `set_scene_presence`；`upsert_actor` 只写 registry，不代表在场。
 - 伤势、诅咒、装备呈现、关键物品追踪：用 `update_actor_condition`。
 - 从者供魔、灵核伤、契约、参数修正：用 `update_servant_form`。
@@ -48,7 +48,7 @@
 - 简单移动、短时间推进、单个目标/威胁变化：用 `update_scene`。
 - 原地等待、休息、睡眠、守夜或过夜且本轮没有其他状态变化：用 `update_scene kind=advance-time`。
 - 原地等待、休息、睡眠、守夜或过夜且本轮还有 condition / servant / memory 等状态变化：用 `commit_turn`，并包含 scene `advance-time` 事件。
-- 复杂 beat 中不要手动拼 `set-story-window` + 多个 `add-objective`；优先用 `start_scene_beat`。
+- 复杂 beat 中不要手动拼 `set-story-window` + 多个 `add-objective`；优先用 `progress_scene_beat`。
 - 10 分钟以上低风险过渡用 `update_scene` 推进时间。
 - 高风险、恢复、睡眠、治疗、补魔必须记录代价。
 - 压力进入正文前先判断是否需要状态落地：伤势/疲劳用 `update_actor_condition`，供魔/灵基损耗用 `update_servant_form`，金钱/资源用 `update_economy`，长期敌意或错过窗口用 `record_memory`，幕后敌方推进用 `record_offscreen_event`。

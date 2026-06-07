@@ -68,12 +68,20 @@ _Avoid_: Full event log, secret memory, compaction summary
 A player-known relationship summary from an actor to the protagonist, used for GM Brief and tool decisions. It is not a full social graph; non-protagonist mechanical relationships use dedicated structures such as Master role and Servant contract.
 _Avoid_: Affection meter, relationship graph
 
+**Scene Beat**:
+A bounded player action window inside the current scene. It owns the temporary Scene Objective and Scene Threat set until the beat is completed.
+_Avoid_: Quest step, chapter, combat round
+
+**Scene Beat Lifecycle**:
+The allowed transitions for the current Scene Beat: begin or complete. It is the canonical place for Scene Objective resolution, Scene Threat cleanup, presence updates, situation changes, and optional Campaign Memory caused by beat closure.
+_Avoid_: Tool macro sequence, manual commit_turn recipe
+
 **Scene Objective**:
-A short-lived objective active in the current scene. It has an ID for tool updates but is not a campaign-wide quest record.
+A short-lived objective active in the current Scene Beat. It has an ID for tool updates but is not a campaign-wide quest record.
 _Avoid_: Quest, long-term goal
 
 **Scene Threat**:
-An immediate pressure or danger active in the current scene. Long-term danger belongs in Campaign Memory or actor state, not as a standing scene threat.
+An immediate pressure or danger active in the current Scene Beat. Long-term danger belongs in Campaign Memory or actor state, not as a standing scene threat.
 _Avoid_: Global danger level, threat database
 
 **Locked Fact**:
