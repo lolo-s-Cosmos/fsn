@@ -54,6 +54,28 @@ export function normalizeOptionalStringArray(value: unknown, fieldName: string):
   return assertStringArray(value, fieldName);
 }
 
+export function normalizeOptionalOneOf<const T extends readonly string[]>(
+  value: unknown,
+  fieldName: string,
+  allowed: T,
+): T[number] | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  return assertOneOf(value, fieldName, allowed);
+}
+
+export function normalizeOptionalInteger(value: unknown, fieldName: string): number | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  const parsed = typeof value === "string" ? Number(value) : value;
+  if (typeof parsed !== "number" || !Number.isInteger(parsed)) {
+    throw new Error(`${fieldName} 必须是整数。`);
+  }
+  return parsed;
+}
+
 export function normalizePositiveInteger(value: unknown, fieldName: string): number {
   const parsed = typeof value === "string" ? Number(value) : value;
   if (typeof parsed !== "number" || !Number.isInteger(parsed) || parsed <= 0) {

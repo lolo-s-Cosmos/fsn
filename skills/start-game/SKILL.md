@@ -216,7 +216,7 @@ Fate/EXTRA CCC 注意：
 - presentActorIds 是否包含当前场景实际在场者？
 - 如果 protagonist 是从者：
   - public trueName 是否 hidden/suspected，除非剧情内完全公开？
-  - hidden trueName 是否已进入 `reveal_secret` secret slot？
+  - hidden trueName 是否已通过 `initialize_new_game.hiddenTrueName` 进入 secret slot？
   - contract masterActorId/masterName 是否与御主一致？
 - 是否把 player-only 或 hidden-canonical 错写成 public memory？如有，先修，不要开场。
 
