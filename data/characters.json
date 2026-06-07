@@ -218,5 +218,75 @@
     "类型": "角色",
     "原文": "<弗兰切斯卡character>\n名字:弗兰切斯卡·普雷拉蒂\n别名:Francesca Prelati;普雷拉蒂\n作品:Fate/strange Fake\n时期:FSF\n定位:FSF 中 True Caster 相关人物，偏观察、搅局和制造戏剧性。\n\n事实边界:\n- 与普雷拉蒂、异端魔术和螺湮城教本系脉络相关。\n- 常以旁观和娱乐态度评估圣杯战争的戏剧性。\n- 可通过使魔、情报和间接行动影响局势。\n\n行为边界:\n- 不要让她过早抢主线或成为所有怪事的幕后答案。\n- 她的介入应有娱乐性、观察收益或阵营目的。\n\n沙盒注意:\n- 适合作为后台观察者；玩家未主动触碰其线索时，优先保持潜伏。\n</弗兰切斯卡character>",
     "时期": "FSF"
+  },
+  "岸波白野": {
+    "类型": "角色",
+    "原文": "<岸波白野character>\n名字:岸波白野\n别名:主人公 (EXTRA);Hakuno Kishinami;岸浪白野;月之Master;ザビ\n作品:Fate/EXTRA\n时期:Fate/EXTRA\n定位:月之圣杯战争的玩家主角；可为男性或女性，名字可由玩家指定。\n\n事实边界:\n- 在 Fate/EXTRA 本篇中，主角姓名可输入；“岸波白野”是漫画版、ドラマCD版等采用的名字。\n- 主角原因不明地失去记忆，被投入 SE.RA.PH 的月之圣杯战争。\n- 可与 Saber、Archer 或 Caster 三名候选从者之一契约。\n\n行为边界:\n- 不要默认玩家就是岸波白野；只有开局明确选择时才使用。\n- 记忆缺损、性别、从者和参赛动机都必须以 campaign premise / start-game 结果为准。\n- 不要把 CCC、EXTELLA 或 FGO 的后续身份自动套进 EXTRA 本篇。\n\n沙盒注意:\n- 用作 Extra 开局模板时，重点是“弱小 Master 在规则不明的电子淘汰赛中求生”。\n- 玩家不知道的对手真名、Moon Cell 深层真相和后期路线事实不能公开。\n</岸波白野character>",
+    "时期": "Fate/EXTRA"
+  },
+  "远坂凛（EXTRA）": {
+    "类型": "角色",
+    "原文": "<远坂凛EXTRAcharacter>\n名字:远坂凛（EXTRA）\n别名:Rin Tohsaka (EXTRA);リン;凛;遠坂凛 (EXTRA)\n作品:Fate/EXTRA\n时期:Fate/EXTRA\n定位:月之圣杯战争参赛 Master，凄腕霊子黑客，反西欧财阀的抵抗者之一。\n\n事实边界:\n- EXTRA 的远坂凛不是 Fate/stay night 的远坂凛；两者不能混为同一人物。\n- 在 EXTRA 本篇中作为 Master 参赛，并与 Lancer 库丘林相关。\n- 官方设定中她是优秀的霊子黑客/ウィザード，现实侧与反西欧财阀活动有关。\n\n行为边界:\n- 她不是冬木远坂家继承人模板；不要自动套用 FSN 的家庭关系、宝石资源和路线经历。\n- 她可以合作或竞争，但仍是参赛 Master，有自己的生存目标。\n\n沙盒注意:\n- 用于 Extra 的抵抗线、对手/盟友分歧、Lancer 阵营和现实世界政治背景。\n- 精确背景细节和路线分歧需要外部检索确认。\n</远坂凛EXTRAcharacter>",
+    "时期": "Fate/EXTRA"
+  },
+  "间桐慎二（EXTRA）": {
+    "类型": "角色",
+    "原文": "<间桐慎二EXTRAcharacter>\n名字:间桐慎二（EXTRA）\n别名:Shinji Matou (EXTRA);間桐シンジ;シンジ\n作品:Fate/EXTRA\n时期:Fate/EXTRA\n定位:月之圣杯战争参赛 Master，亚洲屈指的游戏冠军与 cracker，Rider 阵营相关者。\n\n事实边界:\n- EXTRA 的间桐慎二不是 Fate/stay night 的间桐慎二；不能套用间桐家魔术回路、樱的兄妹关系和冬木经历。\n- 在预选中可被赋予主角旧友一类 role，但本质是 Moon Cell 规则下的参赛者。\n- 与 Rider 弗朗西斯·德雷克相关。\n\n行为边界:\n- 他有游戏感和自尊问题，但霊子黑客能力是真实威胁。\n- 不要把 FSN 慎二的伪臣之书、Rider 美杜莎关系或间桐家腐败自动混入。\n\n沙盒注意:\n- 适合作为 Extra 初期对手、规则误判、游戏感与真实死亡冲突的切口。\n</间桐慎二EXTRAcharacter>",
+    "时期": "Fate/EXTRA"
+  },
+  "拉妮＝Ⅷ": {
+    "类型": "角色",
+    "原文": "<拉妮VIIIcharacter>\n名字:拉妮＝Ⅷ\n别名:Rani VIII;Rani=VIII;ラニ＝Ⅷ;拉妮八世\n作品:Fate/EXTRA\n时期:Fate/EXTRA\n定位:阿特拉斯院所属炼金术师，月之圣杯战争 Master，Berserker 吕布阵营相关者。\n\n事实边界:\n- 出身埃及，隶属阿特拉斯院。\n- 在 EXTRA 本篇中作为重要参赛 Master 与主角发生路线分歧。\n- 与 Berserker 吕布奉先相关。\n\n行为边界:\n- 她的判断偏解析、计算和使命，不是普通校园少女模板。\n- 不要把 CCC 或后续作品的状态自动套回 EXTRA 本篇。\n\n沙盒注意:\n- 用于阿特拉斯院、炼金术、计算式判断、路线选择和吕布阵营压力。\n- 精确能力、背景和 route 差异需要外部检索确认。\n</拉妮VIIIcharacter>",
+    "时期": "Fate/EXTRA"
+  },
+  "雷欧纳多·比斯塔里奥·哈维": {
+    "类型": "角色",
+    "原文": "<雷欧哈维character>\n名字:雷欧纳多·比斯塔里奥·哈维\n别名:Leonardo Bistario Harwey;Leo;レオナルド・ビスタリオ・ハーウェイ;レオ\n作品:Fate/EXTRA\n时期:Fate/EXTRA\n定位:西欧财阀哈维家次期总帅，月之圣杯战争中被视为最强候补之一的 Master。\n\n事实边界:\n- 西欧财阀的御曹司，代表管理社会和理想王的价值观。\n- 与 Saber 高文形成强力主从组合。\n- 在 EXTRA 本篇中是后期核心对手之一。\n\n行为边界:\n- 他不是普通傲慢贵族；应体现完美教育、王者责任和管理社会逻辑。\n- 不要提前把最终对决、失败或后期心理事实公开给未接触角色。\n\n沙盒注意:\n- 用于高压竞争、规则内最强候补、哈维财阀和高文阵营。\n</雷欧哈维character>",
+    "时期": "Fate/EXTRA"
+  },
+  "尤里乌斯·贝尔奇斯克·哈维": {
+    "类型": "角色",
+    "原文": "<尤里乌斯哈维character>\n名字:尤里乌斯·贝尔奇斯克·哈维\n别名:Julius B. Harwey;ユリウス・ベルキスク・ハーウェイ;葛木宗一郎(EXTRA名义)\n作品:Fate/EXTRA\n时期:Fate/EXTRA\n定位:西欧财阀哈维侧杀手，月之圣杯战争 Master，Assassin 李书文阵营相关者。\n\n事实边界:\n- 在 EXTRA 中以“葛木宗一郎”名义进入学园，但不是 FSN 的葛木宗一郎本人。\n- 与 Assassin 李书文相关。\n- 作为哈维侧暗部行动者，与雷欧形成财阀内部的影子面。\n\n行为边界:\n- 不要把 FSN 葛木的经历和美狄亚关系套给他。\n- 他应以杀手、监视、压迫和任务逻辑行动，不是普通教师模板。\n\n沙盒注意:\n- 用于哈维财阀暗线、Assassin 阵营、身份伪装和规则外压力。\n</尤里乌斯哈维character>",
+    "时期": "Fate/EXTRA"
+  },
+  "丹·布莱克莫尔": {
+    "类型": "角色",
+    "原文": "<丹布莱克莫尔character>\n名字:丹·布莱克莫尔\n别名:Dan Blackmore;ダン・ブラックモア;Sir Dan\n作品:Fate/EXTRA\n时期:Fate/EXTRA\n定位:老年狙击兵，月之圣杯战争 Master，Archer 罗宾汉阵营相关者。\n\n事实边界:\n- 出身西欧财阀侧相关国家，具军属与爵位背景。\n- 与 Archer 罗宾汉相关。\n- 作战风格与狙击、荣誉、老兵经验相连。\n\n行为边界:\n- 不要把他写成普通路人老人；他是战场经验者。\n- 罗宾汉的暗杀/毒/游击风格与丹的军人伦理存在张力。\n\n沙盒注意:\n- 用于早中期对手、荣誉与卑劣战术冲突、Arena 伏击压力。\n</丹布莱克莫尔character>",
+    "时期": "Fate/EXTRA"
+  },
+  "爱丽丝（EXTRA）": {
+    "类型": "角色",
+    "原文": "<爱丽丝EXTRAcharacter>\n名字:爱丽丝（EXTRA）\n别名:ありす;Alice;白い少女\n作品:Fate/EXTRA\n时期:Fate/EXTRA\n定位:月之圣杯战争中的少女 Master，与 Caster 童谣构成童话/梦境式危险。\n\n事实边界:\n- 在 EXTRA 本篇中以“白い少女”相关形象出现。\n- 与“黑い少女”/Caster 童谣存在紧密关系。\n- 她的战斗与童话、游戏、边界模糊和精神性危险相关。\n\n行为边界:\n- 不要把她当普通小孩处理；她所在场景的规则和危险需要外部检索确认。\n- 不要把 CCC 或 FGO 中童谣相关表现直接回填。\n\n沙盒注意:\n- 用于童话式异常、规则游戏、梦境/迷宫感和玩家心理压力。\n</爱丽丝EXTRAcharacter>",
+    "时期": "Fate/EXTRA"
+  },
+  "兰路君": {
+    "类型": "角色",
+    "原文": "<兰路君character>\n名字:兰路君\n别名:Ranru-kun;ランルーくん\n作品:Fate/EXTRA\n时期:Fate/EXTRA\n定位:月之圣杯战争 Master，道化师装束的异常女性，Lancer 弗拉德三世阵营相关者。\n\n事实边界:\n- EXTRA 本篇参赛 Master 之一。\n- 与 Lancer 弗拉德三世(EXTRA)相关。\n- 官方描述强调其异样、饥饿与狂气。\n\n行为边界:\n- 不要把她的异常写成无意义装饰；应服务对手回合、饥饿主题和危险行为。\n- 精确动机、背景和台词习惯需要外部检索确认。\n\n沙盒注意:\n- 用于恐怖感、食欲/狂气、Lancer 阵营与路线分歧对手。\n</兰路君character>",
+    "时期": "Fate/EXTRA"
+  },
+  "卧藤门司": {
+    "类型": "角色",
+    "原文": "<卧藤门司character>\n名字:卧藤门司\n别名:Monji Gatou;臥藤門司;ガトー\n作品:Fate/EXTRA\n时期:Fate/EXTRA\n定位:混合宗教式人物，月之圣杯战争 Master，Berserker 阿尔奎德阵营相关者。\n\n事实边界:\n- EXTRA 本篇参赛 Master 之一。\n- 与 Berserker 阿尔奎德相关。\n- 信仰观混杂，常以强烈宗教语言理解世界。\n\n行为边界:\n- 不要把他写成普通邪教徒；他的“误认”和信仰方式会直接影响从者状态。\n- 阿尔奎德相关事实极易跨月姬版本污染，必须查源后使用。\n\n沙盒注意:\n- 用于信仰误判、月姬角色跨界限制、异常强者被规则压低的对手线。\n</卧藤门司character>",
+    "时期": "Fate/EXTRA"
+  },
+  "特维斯·H·皮斯曼": {
+    "类型": "角色",
+    "原文": "<特维斯皮斯曼character>\n名字:特维斯·H·皮斯曼\n别名:Twice H. Pieceman;トワイス・H・ピースマン;Twice\n作品:Fate/EXTRA\n时期:Fate/EXTRA\n定位:医生/研究者相关人物，Moon Cell 与月之圣杯战争深层核心之一，Saver 阵营相关者。\n\n事实边界:\n- 在 EXTRA 本篇中作为后期核心人物，与 Moon Cell 使用权和圣杯战争意义相关。\n- 与 Saver/觉者相关。\n- 其现实前史包括医生、研究者和阿姆涅西亚综合征相关发现。\n\n行为边界:\n- 不要在前期直接公开其最终立场、计划和 Saver 相关事实。\n- 他不是普通幕后黑手模板；应结合战争、救济、停滞世界和 Moon Cell 规则理解。\n\n沙盒注意:\n- 用于 Extra 后期深层真相、Moon Cell 目的、战争循环和 Saver 阵营。\n</特维斯皮斯曼character>",
+    "时期": "Fate/EXTRA"
+  },
+  "间桐樱（EXTRA）": {
+    "类型": "角色",
+    "原文": "<间桐樱EXTRAcharacter>\n名字:间桐樱（EXTRA）\n别名:Sakura Matou (EXTRA);間桐桜 (EXTRA);保健委員\n作品:Fate/EXTRA\n时期:Fate/EXTRA\n定位:SE.RA.PH 月海原学园保健委员 NPC，每回合提供支给品的安全窗口。\n\n事实边界:\n- EXTRA 的间桐樱是 Moon Cell 准备的 NPC，不是 FSN 的远坂樱/间桐樱本人。\n- 预选中可被赋予与慎二相关的 role，但本质不是血缘兄妹关系。\n- 在 EXTRA 本篇主要承担保健室与支给品相关职责。\n\n行为边界:\n- 不要自动套用 FSN 的间桐家压迫、黑圣杯和 Rider 关系。\n- NPC 有 role 限制；除非剧情确认异常，否则不能越权泄露核心规则。\n\n沙盒注意:\n- 用于保健室、补给、安全对话、NPC role 与人性边界。\n</间桐樱EXTRAcharacter>",
+    "时期": "Fate/EXTRA"
+  },
+  "言峰绮礼（EXTRA）": {
+    "类型": "角色",
+    "原文": "<言峰绮礼EXTRAcharacter>\n名字:言峰绮礼（EXTRA）\n别名:Kirei Kotomine (EXTRA);言峰綺礼 (EXTRA);监督役NPC;购买法衣店员\n作品:Fate/EXTRA\n时期:Fate/EXTRA\n定位:Moon Cell 复现的监督役 NPC，负责月之圣杯战争规则接口与购买/决战相关窗口。\n\n事实边界:\n- EXTRA 的言峰是 NPC，是过去人物的“再现”，不是 FSN/FZ 本人直接进入 Moon Cell。\n- 作为监督役与规则接口出现，部分场景中也承担店员式功能。\n\n行为边界:\n- 不要把 FZ/FSN 绮礼的个人经历、吉尔伽美什关系和冬木阴谋直接套进 EXTRA。\n- 他说出的规则仍需按 Moon Cell 系统边界理解，不等于教会监督者现实权力。\n\n沙盒注意:\n- 用于规则说明、购买/支援窗口、讽刺式 NPC 接口和决战流程。\n</言峰绮礼EXTRAcharacter>",
+    "时期": "Fate/EXTRA"
+  },
+  "藤村大河（EXTRA）": {
+    "类型": "角色",
+    "原文": "<藤村大河EXTRAcharacter>\n名字:藤村大河（EXTRA）\n别名:Taiga Fujimura (EXTRA);藤村大河;タイガー\n作品:Fate/EXTRA\n时期:Fate/EXTRA\n定位:月海原学园教师 NPC，日常层与支线 quest 接口。\n\n事实边界:\n- EXTRA 中的大河是 Moon Cell 学园 NPC，不是 FSN 冬木的藤村大河本人。\n- 她承担教师与 request/quest 类接口，能给玩家提供轻量目标。\n\n行为边界:\n- 不要把 FSN 卫宫家监护关系、冬木生活和剑道背景自动套入。\n- 喜剧感不能覆盖 Moon Cell 淘汰赛的真实死亡压力。\n\n沙盒注意:\n- 用于学园日常、支线任务、安全喘息和规则外小目标。\n</藤村大河EXTRAcharacter>",
+    "时期": "Fate/EXTRA"
   }
 }

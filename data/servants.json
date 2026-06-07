@@ -571,6 +571,381 @@
         }
       ],
       "notes": ["FSF 特殊职阶。", "必须保留信息缺口，不要把全部影子和目的一次性讲明。"]
+    },
+    {
+      "id": "nero-claudius-saber-extra",
+      "name": "尼禄·克劳狄乌斯",
+      "aliases": [
+        "Saber (EXTRA)",
+        "赤Saber",
+        "Nero Claudius",
+        "ネロ・クラウディウス",
+        "セイバー(EXTRA)"
+      ],
+      "className": "Saber",
+      "trueName": "尼禄·克劳狄乌斯",
+      "parameters": {
+        "strength": "?",
+        "endurance": "?",
+        "agility": "?",
+        "mana": "?",
+        "luck": "?",
+        "noblePhantasm": "?"
+      },
+      "noblePhantasms": [
+        {
+          "name": "Aestus Domus Aurea",
+          "rank": "?",
+          "kind": "剧场型宝具",
+          "summary": "黄金剧场。具体展开条件、效果和限制需外部检索确认。"
+        }
+      ],
+      "notes": [
+        "Fate/EXTRA 主角可选三骑之一。",
+        "不要和阿尔托莉雅 Saber 混同；“赤 Saber”只是辨识称呼。",
+        "本地条目只作 Extra 索引；精确参数、技能、宝具效果和回合表现需要外部检索 TYPE-MOON Wiki JP / TMdict / 官方资料。"
+      ]
+    },
+    {
+      "id": "nameless-archer-extra",
+      "name": "无铭",
+      "aliases": ["Archer (EXTRA)", "Nameless", "No Name", "無銘", "红衣Archer"],
+      "className": "Archer",
+      "trueName": "无铭",
+      "parameters": {
+        "strength": "?",
+        "endurance": "?",
+        "agility": "?",
+        "mana": "?",
+        "luck": "?",
+        "noblePhantasm": "?"
+      },
+      "noblePhantasms": [
+        {
+          "name": "Unlimited Blade Works",
+          "rank": "?",
+          "kind": "固有结界",
+          "summary": "与投影/剑制相关；EXTRA 版本身份和表现不要直接等同 FSN Archer。"
+        }
+      ],
+      "notes": [
+        "Fate/EXTRA 主角可选三骑之一。",
+        "和 FSN 的 Archer 高度相似但作品语境不同；具体身份边界需查源。",
+        "本地条目只作 Extra 索引；精确参数、技能、宝具效果和回合表现需要外部检索 TYPE-MOON Wiki JP / TMdict / 官方资料。"
+      ]
+    },
+    {
+      "id": "tamamo-no-mae-caster-extra",
+      "name": "玉藻前",
+      "aliases": ["Caster (EXTRA)", "Tamamo-no-Mae", "玉藻の前", "キャス狐", "Casko"],
+      "className": "Caster",
+      "trueName": "玉藻前",
+      "parameters": {
+        "strength": "?",
+        "endurance": "?",
+        "agility": "?",
+        "mana": "?",
+        "luck": "?",
+        "noblePhantasm": "?"
+      },
+      "noblePhantasms": [
+        {
+          "name": "水天日光天照八野镇石",
+          "rank": "?",
+          "kind": "支援/咒术宝具",
+          "summary": "具体效果随作品和场景差异很大，使用前查源。"
+        }
+      ],
+      "notes": [
+        "Fate/EXTRA 主角可选三骑之一。",
+        "咒术、变化和献身/毒舌并存是角色核心。",
+        "本地条目只作 Extra 索引；精确参数、技能、宝具效果和回合表现需要外部检索 TYPE-MOON Wiki JP / TMdict / 官方资料。"
+      ]
+    },
+    {
+      "id": "francis-drake-rider-extra",
+      "name": "弗朗西斯·德雷克",
+      "aliases": ["Rider (EXTRA)", "Francis Drake", "フランシス・ドレイク", "德雷克船长"],
+      "className": "Rider",
+      "trueName": "弗朗西斯·德雷克",
+      "parameters": {
+        "strength": "?",
+        "endurance": "?",
+        "agility": "?",
+        "mana": "?",
+        "luck": "?",
+        "noblePhantasm": "?"
+      },
+      "noblePhantasms": [
+        {
+          "name": "Golden Wild Hunt",
+          "rank": "?",
+          "kind": "舰队/炮击系宝具",
+          "summary": "与航海、舰队、黄金鹿号/野猎形象相关；细节需查源。"
+        }
+      ],
+      "notes": [
+        "EXTRA 中间桐慎二（EXTRA）的 Rider。",
+        "不要和普通海盗 NPC 模板混同；她是从者级航海/火力压力。",
+        "本地条目只作 Extra 索引；精确参数、技能、宝具效果和回合表现需要外部检索 TYPE-MOON Wiki JP / TMdict / 官方资料。"
+      ]
+    },
+    {
+      "id": "robin-hood-archer-extra",
+      "name": "罗宾汉",
+      "aliases": ["Archer (EXTRA)", "Robin Hood", "ロビンフッド", "绿衣Archer"],
+      "className": "Archer",
+      "trueName": "罗宾汉",
+      "parameters": {
+        "strength": "?",
+        "endurance": "?",
+        "agility": "?",
+        "mana": "?",
+        "luck": "?",
+        "noblePhantasm": "?"
+      },
+      "noblePhantasms": [
+        {
+          "name": "Yew Bow",
+          "rank": "?",
+          "kind": "毒/伏击宝具",
+          "summary": "以毒、陷阱、潜伏和条件杀伤为核心；具体机制需查源。"
+        }
+      ],
+      "notes": [
+        "EXTRA 中丹·布莱克莫尔的 Archer。",
+        "优势不是堂堂正面对决，而是侦察、暗杀、毒和 Arena 条件。",
+        "本地条目只作 Extra 索引；精确参数、技能、宝具效果和回合表现需要外部检索 TYPE-MOON Wiki JP / TMdict / 官方资料。"
+      ]
+    },
+    {
+      "id": "nursery-rhyme-caster-extra",
+      "name": "童谣",
+      "aliases": ["Caster (EXTRA)", "Nursery Rhyme", "ナーサリー・ライム", "アリス", "黑い少女"],
+      "className": "Caster",
+      "trueName": "童谣",
+      "parameters": {
+        "strength": "?",
+        "endurance": "?",
+        "agility": "?",
+        "mana": "?",
+        "luck": "?",
+        "noblePhantasm": "?"
+      },
+      "noblePhantasms": [
+        {
+          "name": "Nursery Rhyme",
+          "rank": "?",
+          "kind": "固有结界/童话具现",
+          "summary": "童话与读者内心相关的异常表现；不要写成普通魔术少女。"
+        }
+      ],
+      "notes": [
+        "EXTRA 中与ありす紧密相关。",
+        "其外观和能力与 Master/童话世界关系强，具体边界需查源。",
+        "本地条目只作 Extra 索引；精确参数、技能、宝具效果和回合表现需要外部检索 TYPE-MOON Wiki JP / TMdict / 官方资料。"
+      ]
+    },
+    {
+      "id": "vlad-iii-lancer-extra",
+      "name": "弗拉德三世（EXTRA）",
+      "aliases": ["Lancer (EXTRA)", "Vlad III (EXTRA)", "ヴラド三世 (EXTRA)", "黑铠Lancer"],
+      "className": "Lancer",
+      "trueName": "弗拉德三世",
+      "parameters": {
+        "strength": "?",
+        "endurance": "?",
+        "agility": "?",
+        "mana": "?",
+        "luck": "?",
+        "noblePhantasm": "?"
+      },
+      "noblePhantasms": [
+        {
+          "name": "Kazikli Bey",
+          "rank": "?",
+          "kind": "穿刺/刑罚系宝具",
+          "summary": "EXTRA 版本表现和信仰/吸血鬼形象边界需查源。"
+        }
+      ],
+      "notes": [
+        "EXTRA 中兰路君的 Lancer。",
+        "不要自动套用 Apocrypha/FGO 的其它 Vlad 版本。",
+        "本地条目只作 Extra 索引；精确参数、技能、宝具效果和回合表现需要外部检索 TYPE-MOON Wiki JP / TMdict / 官方资料。"
+      ]
+    },
+    {
+      "id": "arcueid-berserker-extra",
+      "name": "阿尔奎德·布伦史塔德（Berserker）",
+      "aliases": [
+        "Berserker (EXTRA)",
+        "Arcueid Brunestud",
+        "アルクェイド・ブリュンスタッド",
+        "アルクェイド(EXTRA)"
+      ],
+      "className": "Berserker",
+      "trueName": "阿尔奎德·布伦史塔德",
+      "parameters": {
+        "strength": "?",
+        "endurance": "?",
+        "agility": "?",
+        "mana": "?",
+        "luck": "?",
+        "noblePhantasm": "?"
+      },
+      "noblePhantasms": [
+        {
+          "name": "空想具现化相关表现",
+          "rank": "?",
+          "kind": "真祖能力/职阶限制",
+          "summary": "EXTRA 中被 Berserker 容器和 Master 误认显著限制，不能按月姬本体全开。"
+        }
+      ],
+      "notes": [
+        "EXTRA 中卧藤门司的 Berserker。",
+        "这是高危跨作品条目；必须防止把月姬本体强度直接搬进 Extra 战斗。",
+        "本地条目只作 Extra 索引；精确参数、技能、宝具效果和回合表现需要外部检索 TYPE-MOON Wiki JP / TMdict / 官方资料。"
+      ]
+    },
+    {
+      "id": "lu-bu-berserker-extra",
+      "name": "吕布奉先",
+      "aliases": ["Berserker (EXTRA)", "Lu Bu", "吕布", "呂布奉先"],
+      "className": "Berserker",
+      "trueName": "吕布奉先",
+      "parameters": {
+        "strength": "?",
+        "endurance": "?",
+        "agility": "?",
+        "mana": "?",
+        "luck": "?",
+        "noblePhantasm": "?"
+      },
+      "noblePhantasms": [
+        {
+          "name": "God Force",
+          "rank": "?",
+          "kind": "方天画戟/军神五兵",
+          "summary": "具体形态、火力和限制需查源。"
+        }
+      ],
+      "notes": [
+        "EXTRA 中拉妮＝Ⅷ的 Berserker。",
+        "核心是高武力、狂化沟通限制与拉妮的解析/控制。",
+        "本地条目只作 Extra 索引；精确参数、技能、宝具效果和回合表现需要外部检索 TYPE-MOON Wiki JP / TMdict / 官方资料。"
+      ]
+    },
+    {
+      "id": "li-shuwen-assassin-extra",
+      "name": "李书文",
+      "aliases": ["Assassin (EXTRA)", "Li Shuwen", "李書文", "无二打"],
+      "className": "Assassin",
+      "trueName": "李书文",
+      "parameters": {
+        "strength": "?",
+        "endurance": "?",
+        "agility": "?",
+        "mana": "?",
+        "luck": "?",
+        "noblePhantasm": "?"
+      },
+      "noblePhantasms": [
+        {
+          "name": "无二打",
+          "rank": "?",
+          "kind": "武术/对人奥义",
+          "summary": "以中国武术、气息遮断和近身必杀为核心；数值和条件需查源。"
+        }
+      ],
+      "notes": [
+        "EXTRA 中尤里乌斯的 Assassin。",
+        "常时不可见/暗杀压力需要按场景规则处理。",
+        "本地条目只作 Extra 索引；精确参数、技能、宝具效果和回合表现需要外部检索 TYPE-MOON Wiki JP / TMdict / 官方资料。"
+      ]
+    },
+    {
+      "id": "gawain-saber-extra",
+      "name": "高文",
+      "aliases": ["Saber (EXTRA)", "Gawain", "ガウェイン", "太阳骑士"],
+      "className": "Saber",
+      "trueName": "高文",
+      "parameters": {
+        "strength": "?",
+        "endurance": "?",
+        "agility": "?",
+        "mana": "?",
+        "luck": "?",
+        "noblePhantasm": "?"
+      },
+      "noblePhantasms": [
+        {
+          "name": "Excalibur Galatine",
+          "rank": "?",
+          "kind": "对军/太阳圣剑",
+          "summary": "太阳、圣者数字和圣剑火力相关；具体条件必须查源。"
+        }
+      ],
+      "notes": [
+        "EXTRA 中雷欧的 Saber。",
+        "雷欧/高文组合是月之圣杯战争强力候补；不要提前公开全部弱点。",
+        "本地条目只作 Extra 索引；精确参数、技能、宝具效果和回合表现需要外部检索 TYPE-MOON Wiki JP / TMdict / 官方资料。"
+      ]
+    },
+    {
+      "id": "cu-chulainn-lancer-extra",
+      "name": "库丘林（EXTRA）",
+      "aliases": ["Lancer (EXTRA)", "Cu Chulainn (EXTRA)", "クー・フーリン", "凛的Lancer"],
+      "className": "Lancer",
+      "trueName": "库丘林",
+      "parameters": {
+        "strength": "?",
+        "endurance": "?",
+        "agility": "?",
+        "mana": "?",
+        "luck": "?",
+        "noblePhantasm": "?"
+      },
+      "noblePhantasms": [
+        {
+          "name": "Gae Bolg",
+          "rank": "?",
+          "kind": "对人宝具",
+          "summary": "Extra 中与凛阵营相关；具体参数和场景表现需查源。"
+        }
+      ],
+      "notes": [
+        "EXTRA 中远坂凛（EXTRA）的 Lancer。",
+        "不要直接复用 FSN Lancer 的御主限制、经历和状态。",
+        "本地条目只作 Extra 索引；精确参数、技能、宝具效果和回合表现需要外部检索 TYPE-MOON Wiki JP / TMdict / 官方资料。"
+      ]
+    },
+    {
+      "id": "saver-buddha-extra",
+      "name": "觉者",
+      "aliases": ["Saver", "セイヴァー", "Buddha", "救世者", "トワイスのサーヴァント"],
+      "className": "Saver",
+      "trueName": "觉者",
+      "parameters": {
+        "strength": "?",
+        "endurance": "?",
+        "agility": "?",
+        "mana": "?",
+        "luck": "?",
+        "noblePhantasm": "?"
+      },
+      "noblePhantasms": [
+        {
+          "name": "一に還る転生",
+          "rank": "?",
+          "kind": "救世/轮回系宝具",
+          "summary": "极高危后期资料；具体能力、限制和揭示条件必须查源。"
+        }
+      ],
+      "notes": [
+        "EXTRA 中特维斯·H·皮斯曼相关的特殊从者。",
+        "Saver 不是常规七职阶；不得在前期随意揭示或当普通 Boss 工具。",
+        "本地条目只作 Extra 索引；精确参数、技能、宝具效果和回合表现需要外部检索 TYPE-MOON Wiki JP / TMdict / 官方资料。"
+      ]
     }
   ]
 }

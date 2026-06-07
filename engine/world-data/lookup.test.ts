@@ -41,6 +41,26 @@ void test("lookupWorldData finds Fate EXTRA timeline contract", () => {
   assert.match(result.text, /不得混用 Fate\/EXTRA CCC/);
 });
 
+void test("lookupWorldData finds Fate EXTRA character indexes", () => {
+  const hakuno = lookupWorldData({ query: "Fate EXTRA 岸波白野 主人公 记忆缺损" });
+  assert.match(hakuno.text, /\[角色\] 岸波白野/);
+  assert.match(hakuno.text, /不要默认玩家就是岸波白野/);
+
+  const rin = lookupWorldData({ query: "远坂凛 EXTRA 霊子黑客 不是 Fate stay night" });
+  assert.match(rin.text, /\[角色\] 远坂凛（EXTRA）/);
+  assert.match(rin.text, /不是 Fate\/stay night 的远坂凛/);
+});
+
+void test("lookupWorldData finds Fate EXTRA servant indexes", () => {
+  const nero = lookupWorldData({ query: "尼禄 克劳狄乌斯 赤Saber EXTRA" });
+  assert.match(nero.text, /"id": "nero-claudius-saber-extra"/);
+  assert.match(nero.text, /外部检索确认/);
+
+  const saver = lookupWorldData({ query: "Saver 觉者 特维斯 EXTRA" });
+  assert.match(saver.text, /"id": "saver-buddha-extra"/);
+  assert.match(saver.text, /Saver 不是常规七职阶/);
+});
+
 void test("lookupWorldData finds Snowfield locations", () => {
   const result = lookupWorldData({ query: "斯诺菲尔德 歌剧院 临时藏身处" });
 
