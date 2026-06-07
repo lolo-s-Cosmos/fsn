@@ -14,6 +14,7 @@ import { configureActorSecrets, configureServantSecrets, revealSecret } from "..
 import type { ToolResult } from "../runtime/tool-result";
 
 import { runDomainEventTool } from "./domain-tool-runner";
+import { assertArray, assertRecord, assertString, assertStringArray } from "./tool-input";
 
 type RevealSecretToolInput = ConfigureActorSecretsInput | ConfigureServantSecretsInput | RevealSecretEvent;
 
@@ -55,58 +56,56 @@ function secretMessage(output: RevealSecretToolResult): string {
 }
 
 function assertSecretToolInput(params: unknown): RevealSecretToolInput {
-  if (!isRecord(params)) {
-    throw new Error("reveal_secret 参数必须是对象。");
-  }
-  const kind = assertString(params["kind"], "kind");
+  const input = assertRecord(params, "reveal_secret 参数");
+  const kind = assertString(input["kind"], "kind");
   switch (kind) {
     case "configure-servant-secrets":
       return {
         kind,
-        actorId: assertString(params["actorId"], "actorId"),
+        actorId: assertString(input["actorId"], "actorId"),
         trueName:
-          params["trueName"] === undefined
+          input["trueName"] === undefined
             ? undefined
-            : assertServantSecretStringInput(params["trueName"], "trueName"),
+            : assertServantSecretStringInput(input["trueName"], "trueName"),
         hiddenNoblePhantasms:
-          params["hiddenNoblePhantasms"] === undefined
+          input["hiddenNoblePhantasms"] === undefined
             ? undefined
-            : assertArray(params["hiddenNoblePhantasms"], "hiddenNoblePhantasms").map(
+            : assertArray(input["hiddenNoblePhantasms"], "hiddenNoblePhantasms").map(
                 (item) => assertServantSecretNoblePhantasmInput(item, "hiddenNoblePhantasms[]"),
               ),
-        reason: assertString(params["reason"], "reason"),
+        reason: assertString(input["reason"], "reason"),
       };
     case "configure-actor-secrets":
       return {
         kind,
-        actorId: assertString(params["actorId"], "actorId"),
+        actorId: assertString(input["actorId"], "actorId"),
         privateMotives:
-          params["privateMotives"] === undefined
+          input["privateMotives"] === undefined
             ? undefined
-            : assertArray(params["privateMotives"], "privateMotives").map((item) =>
+            : assertArray(input["privateMotives"], "privateMotives").map((item) =>
                 assertServantSecretStringInput(item, "privateMotives[]"),
               ),
         unrevealedAffiliations:
-          params["unrevealedAffiliations"] === undefined
+          input["unrevealedAffiliations"] === undefined
             ? undefined
-            : assertArray(params["unrevealedAffiliations"], "unrevealedAffiliations").map((item) =>
+            : assertArray(input["unrevealedAffiliations"], "unrevealedAffiliations").map((item) =>
                 assertServantSecretStringInput(item, "unrevealedAffiliations[]"),
               ),
-        reason: assertString(params["reason"], "reason"),
+        reason: assertString(input["reason"], "reason"),
       };
     case "claim-reveal":
       return {
         kind,
-        actorId: assertString(params["actorId"], "actorId"),
-        claim: assertString(params["claim"], "claim"),
-        evidence: assertString(params["evidence"], "evidence"),
+        actorId: assertString(input["actorId"], "actorId"),
+        claim: assertString(input["claim"], "claim"),
+        evidence: assertString(input["evidence"], "evidence"),
       };
     case "observed-reveal":
       return {
         kind,
-        actorId: assertString(params["actorId"], "actorId"),
-        trigger: assertString(params["trigger"], "trigger"),
-        evidence: assertString(params["evidence"], "evidence"),
+        actorId: assertString(input["actorId"], "actorId"),
+        trigger: assertString(input["trigger"], "trigger"),
+        evidence: assertString(input["evidence"], "evidence"),
       };
     default:
       throw new Error(`非法 reveal_secret.kind: ${kind}。`);
@@ -163,35 +162,4 @@ function assertNoblePhantasmStatus(value: unknown, fieldName: string): NoblePhan
     return status;
   }
   throw new Error(`${fieldName} 必须是 hidden、suspected 或 revealed。`);
-}
-
-function assertStringArray(value: unknown, fieldName: string): string[] {
-  return assertArray(value, fieldName).map((item, index) =>
-    assertString(item, `${fieldName}[${index}]`),
-  );
-}
-
-function assertArray(value: unknown, fieldName: string): unknown[] {
-  if (!Array.isArray(value)) {
-    throw new Error(`${fieldName} 必须是数组。`);
-  }
-  return value;
-}
-
-function assertRecord(value: unknown, fieldName: string): Record<string, unknown> {
-  if (!isRecord(value)) {
-    throw new Error(`${fieldName} 必须是对象。`);
-  }
-  return value;
-}
-
-function assertString(value: unknown, fieldName: string): string {
-  if (typeof value !== "string" || value.trim().length === 0) {
-    throw new Error(`${fieldName} 必须是非空字符串。`);
-  }
-  return value.trim();
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

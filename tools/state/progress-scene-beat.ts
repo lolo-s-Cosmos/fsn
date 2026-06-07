@@ -14,6 +14,16 @@ import { progressSceneBeat } from "../../engine/core/scene-beat-lifecycle";
 import type { ToolResult } from "../runtime/tool-result";
 
 import { resultDetails, runDomainEventTool } from "./domain-tool-runner";
+import {
+  assertArray,
+  assertOneOf,
+  assertRecord,
+  assertString,
+  assertStringArray,
+  normalizeOptionalString,
+  normalizeOptionalStringArray,
+  normalizePositiveInteger,
+} from "./tool-input";
 
 const SITUATIONS = [
   "daily",
@@ -63,7 +73,7 @@ function normalizeSceneBeatProgressInput(params: unknown): SceneBeatProgressInpu
       return {
         kind,
         title: assertString(input["title"], "title"),
-        objectives: normalizeStringArray(input["objectives"], "objectives"),
+        objectives: assertStringArray(input["objectives"], "objectives"),
         purpose: assertString(input["purpose"], "purpose"),
         beatId: normalizeOptionalString(input["beatId"], "beatId"),
         actionPolicy: normalizeOptionalActionPolicy(input["actionPolicy"]),
@@ -160,7 +170,7 @@ function normalizeOptionalNextBeat(value: unknown): SceneBeatNextBeatInput | nul
   const input = assertRecord(value, "nextBeat");
   return {
     title: assertString(input["title"], "nextBeat.title"),
-    objectives: normalizeStringArray(input["objectives"], "nextBeat.objectives"),
+    objectives: assertStringArray(input["objectives"], "nextBeat.objectives"),
     beatId: normalizeOptionalString(input["beatId"], "nextBeat.beatId"),
     actionPolicy: normalizeOptionalActionPolicy(input["actionPolicy"]),
     threats: normalizeOptionalThreats(input["threats"]),
@@ -205,67 +215,4 @@ function normalizeOptionalSituation(value: unknown, fieldName: string): Situatio
     return undefined;
   }
   return assertOneOf(value, fieldName, SITUATIONS);
-}
-
-function normalizeOptionalStringArray(value: unknown, fieldName: string): string[] | undefined {
-  if (value === undefined) {
-    return undefined;
-  }
-  return normalizeStringArray(value, fieldName);
-}
-
-function normalizeStringArray(value: unknown, fieldName: string): string[] {
-  return assertArray(value, fieldName).map((entry, index) => assertString(entry, `${fieldName}[${index}]`));
-}
-
-function normalizeOptionalString(value: unknown, fieldName: string): string | undefined {
-  if (value === undefined) {
-    return undefined;
-  }
-  return assertString(value, fieldName);
-}
-
-function normalizePositiveInteger(value: unknown, fieldName: string): number {
-  const parsed = typeof value === "string" ? Number(value) : value;
-  if (typeof parsed !== "number" || !Number.isInteger(parsed) || parsed <= 0) {
-    throw new Error(`${fieldName} 必须是大于 0 的整数。`);
-  }
-  return parsed;
-}
-
-function assertOneOf<T extends string>(value: unknown, fieldName: string, allowed: readonly T[]): T {
-  if (typeof value !== "string") {
-    throw new Error(`${fieldName} 必须是字符串。允许值: ${allowed.join(", ")}。`);
-  }
-  for (const candidate of allowed) {
-    if (value === candidate) {
-      return candidate;
-    }
-  }
-  throw new Error(`非法 ${fieldName}: ${value}。允许值: ${allowed.join(", ")}。`);
-}
-
-function assertString(value: unknown, fieldName: string): string {
-  if (typeof value !== "string" || value.trim().length === 0) {
-    throw new Error(`${fieldName} 必须是非空字符串。`);
-  }
-  return value.trim();
-}
-
-function assertArray(value: unknown, fieldName: string): unknown[] {
-  if (!Array.isArray(value)) {
-    throw new Error(`${fieldName} 必须是数组。`);
-  }
-  return value;
-}
-
-function assertRecord(value: unknown, fieldName: string): Record<string, unknown> {
-  if (!isRecord(value)) {
-    throw new Error(`${fieldName} 必须是对象。`);
-  }
-  return value;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

@@ -12,6 +12,10 @@ _Avoid_: Prompt state, status text, world book
 The player-safe slice of Game State. The GM Brief and player-facing status tools are derived only from this slice.
 _Avoid_: Filtered dump, visible state
 
+**Public Game State Projection**:
+A player-safe read model derived from Public Game State for a specific consumer such as GM Brief, player status panel, timeline subagent context, or compaction exclusion digest.
+_Avoid_: Ad-hoc public formatter, filtered secret state
+
 **Secret Game State**:
 The hidden slice of Game State. It stores hidden patches and truth slots for entities whose player-safe skeletons live in Public Game State; only Private Resolution tools may read it.
 _Avoid_: Hidden fields, secret prompt, duplicate actor state
@@ -95,6 +99,10 @@ _Avoid_: Patch tool, raw update, replace object
 **Domain Event Tool Runner**:
 The execution module shared by Domain Event Tools. It owns the common order: run the domain event, persist Game State, attach the state snapshot to tool details, and return player-safe text.
 _Avoid_: Per-tool persistence boilerplate, manual result wrapper
+
+**Tool Input Normalization**:
+The module that narrows unknown tool parameters into domain event inputs at the tool seam. It owns common record, string, enum, array, and positive-integer checks so Domain Event Tools do not duplicate shallow boundary parsing.
+_Avoid_: Per-tool assert helper clones, unchecked tool params
 
 **Revelation**:
 A domain event that moves hidden truth from Secret Game State into Public Game State. Ordinary reveal tools accept player-facing claims and evidence, not secret IDs; the tool internally matches and validates whether anything is revealed.

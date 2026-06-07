@@ -1,0 +1,230 @@
+import type { PublicGameState } from "./state";
+
+import { formatHumanTime } from "./date-time";
+
+export function buildGmBrief(publicState: PublicGameState): string {
+  const protagonist = publicState.actors[publicState.protagonistActorId];
+  if (protagonist === undefined) {
+    throw new Error(`GM brief failed: protagonist ${publicState.protagonistActorId} missing.`);
+  }
+  const time = formatHumanTime(publicState.clock.currentAt, publicState.clock.timezone);
+  return [
+    "[当前 GM 简报]",
+    `时间：${time.display}`,
+    `地点：${formatPublicLocation(publicState.scene.location, { includeBoundary: true })}`,
+    `态势：${publicState.scene.situation}`,
+    `剧情窗口：${formatStoryWindow(publicState)}`,
+    `玩家角色：${formatActorLine(protagonist)}`,
+    `同行者：${formatAllies(publicState)}`,
+    `资源：${formatGmBriefFunds(publicState)}`,
+    `伤势/长期影响：${formatCondition(protagonist.condition)}`,
+    `当前目标：${formatActiveObjectives(publicState, { separator: "；" })}`,
+    `目标选择规则：resolve-objective / commit_turn 解决目标时，优先用 objectiveSummary 并逐字复制上方 summary；不确定 id 时不要传 objectiveId，更不要传空字符串。`,
+    `当前威胁：${formatSceneThreats(publicState, { separator: "；", colon: ":" })}`,
+    `最近重大记忆：${formatRecentEvents(publicState)}`,
+    "本轮工具纪律：复杂 beat 开启/收口用 progress_scene_beat；非常规多状态组合才用 commit_turn；actor 入场/离场用 set_scene_presence。不要输出 JSON、数值表、schema 字段。",
+  ].join("\n");
+}
+
+export function buildStatusMarkdown(publicState: PublicGameState): string {
+  return [
+    "## 当前状态",
+    "",
+    `- 时间：${publicState.clock.currentAt}（${publicState.clock.timezone}）`,
+    `- 地点：${formatPublicLocation(publicState.scene.location)}`,
+    `- 场景：${publicState.scene.situation}`,
+    `- 在场：${formatPresentActors(publicState)}`,
+    `- 目标：${formatActiveObjectives(publicState, { separator: "；" })}`,
+    `- 威胁：${formatSceneThreats(publicState, { separator: "；", colon: ": " })}`,
+    "",
+    buildInventoryMarkdown(publicState),
+  ].join("\n");
+}
+
+export function buildInventoryMarkdown(publicState: PublicGameState): string {
+  return [
+    "## 资源与物品",
+    "",
+    "### 资金",
+    "",
+    formatFunds(publicState),
+    "",
+    "### 关键物品",
+    "",
+    formatTrackedItems(publicState),
+    "",
+    "### 普通随身物",
+    "",
+    formatOrdinaryItems(publicState),
+  ].join("\n");
+}
+
+export function formatPublicLocation(
+  location: PublicGameState["scene"]["location"],
+  options: { includeBoundary?: boolean } = {},
+): string {
+  const base = [location.region, location.site, location.detail]
+    .filter((part) => part.length > 0)
+    .join(" · ");
+  if (!options.includeBoundary || location.boundary === "normal") {
+    return base;
+  }
+  return `${base}（${location.boundary}）`;
+}
+
+export function formatActiveObjectives(
+  publicState: PublicGameState,
+  options: { separator: string },
+): string {
+  const active = publicState.scene.objectives.filter(
+    (objective) => objective.status !== "resolved",
+  );
+  return active.length === 0
+    ? "无"
+    : active.map((objective) => `${objective.id}: ${objective.summary}`).join(options.separator);
+}
+
+export function formatSceneThreats(
+  publicState: PublicGameState,
+  options: { separator: string; colon: string },
+): string {
+  return publicState.scene.threats.length === 0
+    ? "无"
+    : publicState.scene.threats
+        .map((threat) => `${threat.severity}${options.colon}${threat.summary}`)
+        .join(options.separator);
+}
+
+export function actorDisplayName(publicState: PublicGameState, actorId: string): string {
+  return publicState.actors[actorId]?.presentation.displayName ?? actorId;
+}
+
+function formatStoryWindow(publicState: PublicGameState): string {
+  const window = publicState.scene.storyWindow;
+  if (window === null) {
+    return "未设定；复杂场景应先用 progress_scene_beat kind=begin 锁定 beat 边界";
+  }
+  const allowed = window.allowedActions.length === 0 ? "未列出" : window.allowedActions.join("、");
+  const forbidden =
+    window.forbiddenEscalations.length === 0 ? "未列出" : window.forbiddenEscalations.join("、");
+  const criteria =
+    window.completionCriteria.length === 0 ? "未列出" : window.completionCriteria.join("、");
+  return `${window.currentArcId}/${window.currentBeatId}《${window.title}》；允许：${allowed}；禁区：${forbidden}；完成：${criteria}`;
+}
+
+function formatActorLine(actor: NonNullable<PublicGameState["actors"][string]>): string {
+  const servant = actor.servantForm;
+  const identity = formatIdentity(actor);
+  if (servant === null) {
+    return `${actor.presentation.displayName} / ${actor.kind} / ${identity}`;
+  }
+  return [
+    actor.presentation.displayName,
+    actor.kind,
+    servant.identity.className,
+    `真名${servant.identity.trueName.status}:${servant.identity.trueName.display}`,
+    `灵基${resourceBand(servant.condition.spiritualCore.value)}`,
+    `魔力${resourceBand(servant.condition.mana.value)}`,
+    `契约${servant.contract.status}`,
+  ].join(" / ");
+}
+
+function formatIdentity(actor: NonNullable<PublicGameState["actors"][string]>): string {
+  const memoryIdentity = actor.identity.lockedFacts.find((fact) => fact.id === "setup-identity");
+  return memoryIdentity?.text ?? actor.identity.publicIdentity;
+}
+
+function formatAllies(publicState: PublicGameState): string {
+  if (publicState.allyActorIds.length === 0) {
+    return "无";
+  }
+  return publicState.allyActorIds
+    .map((actorId) => publicState.actors[actorId])
+    .filter((actor) => actor !== undefined)
+    .map(
+      (actor) => `${actor.presentation.displayName}（${actor.relationshipToProtagonist.summary}）`,
+    )
+    .join("；");
+}
+
+function formatGmBriefFunds(publicState: PublicGameState): string {
+  const total = publicState.economy.accessibleFunds.reduce((sum, purse) => sum + purse.amount, 0);
+  const keyItems = Object.values(publicState.trackedItems)
+    .filter((item) => item.visibility === "player-known")
+    .map((item) => item.label)
+    .slice(0, 5);
+  const itemText = keyItems.length === 0 ? "无关键物品" : `关键物品：${keyItems.join("、")}`;
+  return `可访问资金 ${total.toLocaleString()} 円；${itemText}`;
+}
+
+function formatCondition(
+  condition: NonNullable<PublicGameState["actors"][string]>["condition"],
+): string {
+  const wounds = condition.wounds.map((wound) => `${wound.severity}:${wound.text}`);
+  const afflictions = condition.afflictions.map((affliction) => affliction.text);
+  const effects = condition.permanentEffects.map((effect) => effect.text);
+  const all = [...wounds, ...afflictions, ...effects];
+  return all.length === 0 ? "无显著伤势或长期影响" : all.join("；");
+}
+
+function formatRecentEvents(publicState: PublicGameState): string {
+  const recent = publicState.memory.eventLog.slice(-3);
+  return recent.length === 0
+    ? "无"
+    : recent.map((event) => `${event.title}：${event.summary}`).join("；");
+}
+
+function formatPresentActors(publicState: PublicGameState): string {
+  const names = publicState.scene.presentActorIds.map((actorId) =>
+    actorDisplayName(publicState, actorId),
+  );
+  return names.length === 0 ? "无" : names.join("、");
+}
+
+function formatFunds(publicState: PublicGameState): string {
+  if (publicState.economy.accessibleFunds.length === 0) {
+    return "- 无可访问资金";
+  }
+  return publicState.economy.accessibleFunds
+    .map(
+      (purse) =>
+        `- ${purse.label}：${purse.amount.toLocaleString()} ${publicState.economy.currency}`,
+    )
+    .join("\n");
+}
+
+function formatTrackedItems(publicState: PublicGameState): string {
+  const items = Object.values(publicState.trackedItems)
+    .filter((item) => item.visibility === "player-known")
+    .toSorted((left, right) => left.label.localeCompare(right.label));
+  if (items.length === 0) {
+    return "- 无关键物品";
+  }
+  return items
+    .map((item) => {
+      const holder =
+        item.holderActorId === null
+          ? "未随身持有"
+          : actorDisplayName(publicState, item.holderActorId);
+      const notes = item.notes.length === 0 ? "" : `；${item.notes.join("；")}`;
+      return `- ${item.label}（${holder}；${item.condition}${notes}）`;
+    })
+    .join("\n");
+}
+
+function formatOrdinaryItems(publicState: PublicGameState): string {
+  const lines = Object.values(publicState.actors)
+    .filter((actor) => actor.inventory.ordinaryItems.length > 0)
+    .map(
+      (actor) => `- ${actor.presentation.displayName}：${actor.inventory.ordinaryItems.join("、")}`,
+    );
+  return lines.length === 0 ? "- 无记录" : lines.join("\n");
+}
+
+function resourceBand(value: number): string {
+  if (value >= 80) return "稳定";
+  if (value >= 50) return "尚可";
+  if (value >= 25) return "低落";
+  if (value > 0) return "危险";
+  return "枯竭";
+}
