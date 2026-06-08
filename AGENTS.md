@@ -27,6 +27,21 @@
 
 本文件是工程纪律的单一权威源。违反宪章的代码不叫「能跑就行」，叫「不合格」。
 
+### 硬切优先，schema 迁移兜底
+
+项目没有用户兼容性负担。旧概念一旦被判定为错误，就必须从当前契约中消失：
+
+- 不保留 alias、deprecated 字段、兼容 normalizer、旧工具入口或旧 engine public API。
+- 不在工具描述、prompt、错误信息里写「不要使用旧字段」；提到旧字段本身就是继续教模型使用它。
+- 不用运行时 fallback 读取新字段；state 只能先迁移到当前 schema，再进入业务逻辑。
+- 唯一允许的兼容层是 persisted state schema migration。
+
+State schema 变更必须 bump `schemaVersion`，并提供程序化逐版本迁移。迁移链必须是线性的 `v1 -> v2 -> v3`，每个函数只负责相邻版本；禁止写 `v1 -> current`、`v2 -> current` 这种 O(n²) 迁移矩阵。
+
+### Prompt 不是防线
+
+Prompt 负责引导，不能承担正确性。模型常犯错时，优先把约束下沉到 schema、tool boundary、normalizer、engine invariant、migration 和测试。只补一句 prompt 骂模型，等于没有修。
+
 ---
 
 ## 工具链基线
@@ -116,8 +131,8 @@ type SceneResult =
 
 不要把工具设计成“把状态改一下”。工具必须表达世界里发生的事：
 
-- `update_scene`：时间、地点、scene objective / threat 的领域事件。
-- `progress_scene_beat`：玩家当前 Scene Beat 行动窗口的开启与收口。
+- `commit_turn`：非 Scene Beat lifecycle 的 canonical turn 提交入口；顶层 `time` 是必填 turn envelope。
+- `progress_scene_beat`：玩家当前 Scene Beat 行动窗口的开启与收口；顶层 `time` 是必填 turn envelope。
 - `update_economy`：有账户、有来源、有 reason 的资金事件；修账户名用 `rename-purse`，不要伪造 spend/gain。
 - `update_actor_condition`：wound / affliction / outfit / tracked item 等可审计条件变化。
 - `reveal_secret`：隐藏真名、宝具、动机的配置与揭示；不能用叙事直接泄密。
@@ -131,6 +146,19 @@ type SceneResult =
 4. 回归测试。
 
 不要只加 prompt 骂模型。
+
+### 时间推进是 turn envelope，不是 scene event
+
+每个 canonical turn 都必须推进 clock：
+
+- `commit_turn.time` / `progress_scene_beat.time` 必填。
+- 当前时间裁决只允许 `elapsed` 或 `travel`。
+- 没有 `none`；短促对白、瞬间反应、换装、抬手格挡也至少 `elapsedMinutes: 1`。
+- 地点移动用 `time.kind="travel"`，非移动耗时用 `time.kind="elapsed"`。
+- Scene event 不承担时间推进；时间不是 `scene.kind` 的一个分支。
+- `turnLog` 是审计账本，必须能看出每轮 `startedAt -> endedAt`。
+
+如果 JSONL 显示 accepted tool call 大量没有推进时间，说明当前工具契约仍有逃生门；删契约，不要写提示。
 
 ### Public / secrets / player knowledge 分层
 
@@ -426,10 +454,10 @@ refactor: extract lookup index builder to shared utility
 
 不要写「更新」「修」「改」这类无信息量的词。
 
-### 提交前必须通过三项检查
+### 提交前必须通过四项检查
 
 ```bash
-pnpm typecheck && pnpm lint && pnpm format:check
+pnpm typecheck && pnpm lint && pnpm format:check && pnpm test
 ```
 
 一条不过 = 不能 commit。不允许 `--no-verify`。
@@ -461,14 +489,14 @@ pnpm typecheck && pnpm lint && pnpm format:check
 
 - **改 GM prompt** → 保持模块分工：`gm-system.md` 只放身份与最高契约；世界边界在 `gm-context.md`；硬规则在 `gm-rules.md`；工具路由在 `gm-tool-policy.md`；剧情推进纪律在 `gm-story-driver.md`；渲染在 `gm-render.md`；输入解释在 `gm-input-guide.md`；输出格式在 `gm-output-contract.md`。不要把所有规则塞进 system 层。
 - **改 `/skill:start-game`** → 它只处理新游戏/重新开始/创建角色。必须保持流程机、public/secrets/player knowledge 分层、protagonist 从者真名防泄露、新手模式。
-- **新增工具** → 在 `tools/registry.ts` 注册；description 必须含「必须调用场景」+「严禁行为」。工具应是领域事件，不是状态栏 setter。
-- **模型常犯错** → 先写回归测试，再加工具归一化/领域 invariant/更清晰错误信息。不要只补 prompt。
-- **改 state 结构** → 同步 `INITIAL_STATE` + schema + protected paths 白名单。只允许经 migration 后访问新字段，不做运行时 fallback。
+- **新增工具** → 在 `tools/registry.ts` 注册；description 必须含「必须调用场景」+「严禁行为」。工具应是领域事件，不是状态栏 setter。不要在当前工具契约里提旧字段、旧 kind 或旧入口。
+- **模型常犯错** → 先写回归测试或 JSONL 统计复现，再加工具拒绝/领域 invariant/schema 约束/迁移。不要只补 prompt。
+- **改 state 结构** → bump `schemaVersion`，同步 initial state + schema + protected paths 白名单，新增逐版本 migration 和 migration 测试。只允许经 migration 后访问新字段，不做运行时 fallback。
 - **查 state 的代码** → 必须处理 `noUncheckedIndexedAccess` 带来的 `| undefined`——每个索引访问都有判空路径。
 - **改 lookup/data** → 保留 canonical fact skeleton，避免复制 wiki prose；不要引入非 TYPE-MOON 材料污染目标世界。
 - **改 subagent** → project-scope、explicit `tools`、explicit `extensions`、bare JSON 输出约束必须保留。
 - **改 release 包** → 跑打包检查，确认不含 `sessions/`、`state/`、`.pi/agent/`、`agents/user/`、`docs/`、`*.test.ts`。
-- **任何改动** → `pnpm typecheck && pnpm lint && pnpm format:check` 全过。
+- **任何改动** → `pnpm typecheck && pnpm lint && pnpm format:check && pnpm test` 全过。
 
 ---
 
