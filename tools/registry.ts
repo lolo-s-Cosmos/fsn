@@ -155,7 +155,7 @@ export function registerAllTools(pi: ExtensionAPI): void {
           }),
           event: Type.Unknown({
             description:
-              "对应领域事件载荷；scene event 不包含时间/移动，只允许 scene 态势、目标、威胁、地点修正；resolve-objective 可用 objectiveSummary，不要传 undefined。",
+              "对应领域事件载荷；scene event 不包含时间/移动，只允许 scene 态势、目标、威胁、地点修正；resolve-objective 只用于当前 GM brief 列出的目标，objectiveSummary 必须逐字复制。当前目标为无时不要使用 resolve-objective。",
           }),
         }),
       ),
@@ -171,10 +171,11 @@ export function registerAllTools(pi: ExtensionAPI): void {
       "推进当前 Scene Beat lifecycle；这是 Scene Beat 的唯一 GM-facing Adapter，用 begin 开启有界行动窗口，用 complete 收口当前 beat（失败、撤退、逃离也属于 complete）。\n\n" +
       "【必须调用的场景】\n" +
       "- 进入新的调查、潜入、对峙、撤退、战斗准备等复杂场景，需要 1-5 个当前目标：kind=begin\n" +
-      "- 当前 beat 已经收口，需要一次性解决全部 active Scene Objective、清理 Scene Threat、可选记录 Campaign Memory、可选进入 nextBeat：kind=complete\n" +
+      "- 当前 GM brief 显示存在剧情窗口，且当前 beat 已经收口，需要一次性解决全部 active Scene Objective、清理 Scene Threat、可选记录 Campaign Memory、可选进入 nextBeat：kind=complete\n" +
       "- 进入或收口 beat 时必须填写 time；移动用 time.kind=travel；非移动事件用 time.kind=elapsed，最小 1 分钟\n\n" +
       "【严禁的行为】\n" +
       "- 用它记录长期目标或幕后真相；长期后果写 memory，秘密走 reveal/private_resolve/offscreen\n" +
+      "- 当前 GM brief 显示剧情窗口未设定或当前目标为无时调用 complete\n" +
       "- 未满足当前 completionCriteria 就强行 complete；失败/撤退可以 complete，但 outcome 必须写明代价或后果\n" +
       "- nextBeat 继续复读同一中心冲突：撤退/逃亡完成后必须转为落脚、治疗、隐蔽、休整、交涉或新信息处理\n" +
       "- 用 memory 写入未揭示 secret；公开记忆仍必须提供 claims 并遵守证据门禁\n" +

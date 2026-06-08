@@ -110,7 +110,7 @@ void test("progressSceneBeat rejects complete without an active Scene Beat", () 
         outcome: "没有当前 beat 却尝试收口。",
         time: { kind: "elapsed", elapsedMinutes: 1, reason: "即时行动也推进一个最小时间单位。" },
       }),
-    /当前存在 Scene Beat/,
+    /复杂新场景请用 progress_scene_beat begin/,
   );
 });
 

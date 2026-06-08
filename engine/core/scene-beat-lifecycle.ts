@@ -121,7 +121,7 @@ function completeCurrentSceneBeat(input: SceneBeatCompleteInput): SceneBeatProgr
   const currentWindow = state.public.scene.storyWindow;
   if (currentWindow === null) {
     throw new Error(
-      "progress_scene_beat complete 需要当前存在 Scene Beat；非 Scene Beat lifecycle 的多状态变化请用 commit_turn。",
+      "progress_scene_beat complete 需要当前存在 Scene Beat。当前没有 active beat；复杂新场景请用 progress_scene_beat begin，非 Scene Beat lifecycle 的状态变化请用 commit_turn。",
     );
   }
 
