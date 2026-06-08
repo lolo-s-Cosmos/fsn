@@ -9,33 +9,36 @@ import {
   syncStateFromSessionManager,
 } from "../../engine/core/session-hydration";
 import { cloneState, resetState, sessionKey } from "../../engine/core/state";
+import { commitTurnTool } from "./commit-turn";
 import { getStatusTool } from "./get-status";
 import { upsertActorTool } from "./upsert-actor";
 import { setScenePresenceTool } from "./set-scene-presence";
 import { updateActorConditionTool } from "./update-actor-condition";
 import { updateEconomyTool } from "./update-economy";
-import { updateSceneTool } from "./update-scene";
 
 describe("Fate state tool-level smoke flow", () => {
   it("persists state details that can hydrate a later session", () => {
     resetState();
     const sessionManager = createMockSessionManager();
 
-    const moveResult = updateSceneTool(
+    const moveResult = commitTurnTool(
       {
-        kind: "move-location",
-        location: {
-          region: "冬木市",
-          site: "新都",
-          detail: "駅前商店街",
-          boundary: "normal",
+        time: {
+          kind: "travel",
+          location: {
+            region: "冬木市",
+            site: "新都",
+            detail: "駅前商店街",
+            boundary: "normal",
+          },
+          elapsedMinutes: 30,
+          reason: "smoke test moves to a known public location",
         },
-        elapsedMinutes: 30,
-        reason: "smoke test moves to a known public location",
+        events: [],
       },
       sessionManager,
     );
-    assert.match(textOf(moveResult), /地点已更新/);
+    assert.match(textOf(moveResult), /回合已提交/);
 
     const spendResult = updateEconomyTool(
       {
@@ -154,16 +157,24 @@ describe("Fate state tool-level smoke flow", () => {
 
   it("ignores branch_summary details when hydrating after tree navigation", () => {
     resetState();
-    updateSceneTool(
+    commitTurnTool(
       {
-        kind: "set-location",
-        location: {
-          region: "斯诺菲尔德",
-          site: "旧分支",
-          detail: "不该被 branch_summary 恢复",
-          boundary: "normal",
-        },
-        reason: "生成旧分支 state",
+        time: { kind: "none", reason: "地点修正不耗时" },
+        events: [
+          {
+            kind: "scene",
+            event: {
+              kind: "set-location",
+              location: {
+                region: "斯诺菲尔德",
+                site: "旧分支",
+                detail: "不该被 branch_summary 恢复",
+                boundary: "normal",
+              },
+              reason: "生成旧分支 state",
+            },
+          },
+        ],
       },
       createMockSessionManager(),
     );
@@ -182,16 +193,24 @@ describe("Fate state tool-level smoke flow", () => {
 
   it("resets in-memory state when the current branch has no Fate state", () => {
     resetState();
-    updateSceneTool(
+    commitTurnTool(
       {
-        kind: "set-location",
-        location: {
-          region: "斯诺菲尔德",
-          site: "歌剧院",
-          detail: "回滚前旧地点",
-          boundary: "normal",
-        },
-        reason: "制造需要被回滚清除的状态",
+        time: { kind: "none", reason: "地点修正不耗时" },
+        events: [
+          {
+            kind: "scene",
+            event: {
+              kind: "set-location",
+              location: {
+                region: "斯诺菲尔德",
+                site: "歌剧院",
+                detail: "回滚前旧地点",
+                boundary: "normal",
+              },
+              reason: "制造需要被回滚清除的状态",
+            },
+          },
+        ],
       },
       createMockSessionManager(),
     );
@@ -204,43 +223,67 @@ describe("Fate state tool-level smoke flow", () => {
   it("get_status rehydrates from the active session branch before reading state", () => {
     resetState();
     const sessionManager = createMockSessionManager();
-    updateSceneTool(
+    commitTurnTool(
       {
-        kind: "set-location",
-        location: {
-          region: "斯诺菲尔德",
-          site: "歌剧院",
-          detail: "回滚前旧地点",
-          boundary: "normal",
-        },
-        reason: "制造旧内存状态",
+        time: { kind: "none", reason: "地点修正不耗时" },
+        events: [
+          {
+            kind: "scene",
+            event: {
+              kind: "set-location",
+              location: {
+                region: "斯诺菲尔德",
+                site: "歌剧院",
+                detail: "回滚前旧地点",
+                boundary: "normal",
+              },
+              reason: "制造旧内存状态",
+            },
+          },
+        ],
       },
       createMockSessionManager(),
     );
     resetState();
-    updateSceneTool(
+    commitTurnTool(
       {
-        kind: "set-location",
-        location: {
-          region: "冬木市",
-          site: "冬木教会",
-          detail: "礼拜堂",
-          boundary: "normal",
-        },
-        reason: "写入当前 branch 应恢复的状态",
+        time: { kind: "none", reason: "地点修正不耗时" },
+        events: [
+          {
+            kind: "scene",
+            event: {
+              kind: "set-location",
+              location: {
+                region: "冬木市",
+                site: "冬木教会",
+                detail: "礼拜堂",
+                boundary: "normal",
+              },
+              reason: "写入当前 branch 应恢复的状态",
+            },
+          },
+        ],
       },
       sessionManager,
     );
-    updateSceneTool(
+    commitTurnTool(
       {
-        kind: "set-location",
-        location: {
-          region: "斯诺菲尔德",
-          site: "住宅区",
-          detail: "错误残留内存",
-          boundary: "normal",
-        },
-        reason: "再次污染全局内存",
+        time: { kind: "none", reason: "地点修正不耗时" },
+        events: [
+          {
+            kind: "scene",
+            event: {
+              kind: "set-location",
+              location: {
+                region: "斯诺菲尔德",
+                site: "住宅区",
+                detail: "错误残留内存",
+                boundary: "normal",
+              },
+              reason: "再次污染全局内存",
+            },
+          },
+        ],
       },
       createMockSessionManager(),
     );

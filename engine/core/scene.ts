@@ -10,16 +10,12 @@ import type {
   StoryWindowState,
 } from "./state";
 
-import { Temporal } from "@js-temporal/polyfill";
-
-import { assertNonEmptyString, assertNonNegativeInteger, createId, updateState } from "./state";
+import { assertNonEmptyString, createId, updateState } from "./state";
 
 const MIN_BEAT_OBJECTIVES = 1;
 const MAX_BEAT_OBJECTIVES = 5;
 
 export type SceneEvent =
-  | { kind: "advance-time"; elapsedMinutes: number; reason: string }
-  | { kind: "move-location"; location: LocationState; elapsedMinutes: number; reason: string }
   | { kind: "set-location"; location: LocationState; reason: string }
   | { kind: "set-situation"; situation: SituationKind; reason: string }
   | { kind: "set-story-window"; storyWindow: StoryWindowState; reason: string }
@@ -36,8 +32,7 @@ export type SceneEvent =
 
 export type SceneBeatTurnEvent =
   | { kind: "begin-beat"; input: SceneBeatInput }
-  | { kind: "transition-beat"; input: SceneBeatTransitionInput }
-  | { kind: "move-location"; input: SceneBeatMoveInput };
+  | { kind: "transition-beat"; input: SceneBeatTransitionInput };
 
 export interface SceneBeatInput {
   storyWindow: StoryWindowState;
@@ -64,18 +59,6 @@ export interface SceneBeatTransitionInput {
   reason: string;
 }
 
-export interface SceneBeatMoveInput {
-  storyWindow: StoryWindowState;
-  objectives: string[];
-  threats?: SceneBeatThreatInput[];
-  presentActorIds?: ActorId[];
-  allyActorIds?: ActorId[];
-  situation?: SituationKind;
-  location: LocationState;
-  elapsedMinutes: number;
-  reason: string;
-}
-
 export interface SceneEventResult {
   message: string;
 }
@@ -97,38 +80,6 @@ export function beginSceneBeat(input: SceneBeatInput): SceneBeatResult {
   assertNonEmptyString(input.reason, "reason");
   assertBeatObjectives(input.objectives);
   return beginSceneBeatUnchecked(input);
-}
-
-export function moveToSceneBeat(input: SceneBeatMoveInput): SceneBeatResult {
-  const elapsedMinutes = assertPositiveElapsedMinutes(input.elapsedMinutes);
-  assertNonEmptyString(input.reason, "reason");
-  assertBeatObjectives(input.objectives);
-  const objectiveIds: SceneObjectiveId[] = [];
-  const threatIds: SceneThreatId[] = [];
-  updateState((draft) => {
-    const nextTime = Temporal.Instant.from(draft.public.clock.currentAt)
-      .add({ minutes: elapsedMinutes })
-      .toString();
-    draft.public.clock.currentAt = nextTime;
-    draft.public.scene.lastResolvedAt = nextTime;
-    draft.public.scene.location = input.location;
-    beginSceneBeatOnDraft(draft, input, objectiveIds, threatIds);
-  });
-  return {
-    message: `已移动并开始 Scene Beat：${input.storyWindow.title}；经过 ${elapsedMinutes} 分钟；目标 ${objectiveIds.length} 个。`,
-    objectiveIds,
-    threatIds,
-  };
-}
-
-function assertPositiveElapsedMinutes(value: unknown): number {
-  const elapsedMinutes = assertNonNegativeInteger(value, "elapsedMinutes");
-  if (elapsedMinutes === 0) {
-    throw new Error(
-      "非法elapsedMinutes: 0。移动或推进时间必须大于 0；若没有经过时间，请不要记录移动/时间推进事件。",
-    );
-  }
-  return elapsedMinutes;
 }
 
 function beginSceneBeatUnchecked(input: SceneBeatInput): SceneBeatResult {
@@ -232,10 +183,6 @@ export function transitionSceneBeat(input: SceneBeatTransitionInput): SceneBeatT
 export function updateScene(event: SceneEvent): SceneEventResult {
   assertNonEmptyString(event.reason, "reason");
   switch (event.kind) {
-    case "advance-time":
-      return advanceTime(event);
-    case "move-location":
-      return moveLocation(event);
     case "set-location":
       return setLocation(event);
     case "set-situation":
@@ -255,31 +202,6 @@ export function updateScene(event: SceneEvent): SceneEventResult {
     default:
       throw new Error("unreachable scene event kind");
   }
-}
-
-function advanceTime(event: Extract<SceneEvent, { kind: "advance-time" }>): SceneEventResult {
-  const elapsedMinutes = assertPositiveElapsedMinutes(event.elapsedMinutes);
-  updateState((draft) => {
-    const nextTime = Temporal.Instant.from(draft.public.clock.currentAt)
-      .add({ minutes: elapsedMinutes })
-      .toString();
-    draft.public.clock.currentAt = nextTime;
-    draft.public.scene.lastResolvedAt = nextTime;
-  });
-  return { message: `时间已推进 ${elapsedMinutes} 分钟。` };
-}
-
-function moveLocation(event: Extract<SceneEvent, { kind: "move-location" }>): SceneEventResult {
-  const elapsedMinutes = assertPositiveElapsedMinutes(event.elapsedMinutes);
-  updateState((draft) => {
-    const nextTime = Temporal.Instant.from(draft.public.clock.currentAt)
-      .add({ minutes: elapsedMinutes })
-      .toString();
-    draft.public.clock.currentAt = nextTime;
-    draft.public.scene.lastResolvedAt = nextTime;
-    draft.public.scene.location = event.location;
-  });
-  return { message: `地点已更新，经过 ${elapsedMinutes} 分钟。` };
 }
 
 function setLocation(event: Extract<SceneEvent, { kind: "set-location" }>): SceneEventResult {

@@ -1,14 +1,13 @@
 import type { MemoryClaim } from "../../engine/core/memory";
 import type {
   SceneBeatActionPolicy,
-  SceneBeatLocationMoveInput,
   SceneBeatMemoryInput,
   SceneBeatNextBeatInput,
   SceneBeatPresenceInput,
   SceneBeatProgressInput,
 } from "../../engine/core/scene-beat-lifecycle";
 import type { SceneBeatThreatInput } from "../../engine/core/scene";
-import type { LocationState, SituationKind } from "../../engine/core/state";
+import type { SituationKind } from "../../engine/core/state";
 
 import { progressSceneBeat } from "../../engine/core/scene-beat-lifecycle";
 import type { ToolResult } from "../runtime/tool-result";
@@ -22,8 +21,8 @@ import {
   assertStringArray,
   normalizeOptionalString,
   normalizeOptionalStringArray,
-  normalizePositiveInteger,
 } from "./tool-input";
+import { normalizeTurnTimePolicy } from "./time-policy-normalizer";
 
 const SITUATIONS = [
   "daily",
@@ -34,7 +33,6 @@ const SITUATIONS = [
   "escape",
   "downtime",
 ] as const satisfies readonly SituationKind[];
-const BOUNDARIES = ["normal", "bounded-field", "reality-marble", "otherworld"] as const satisfies readonly LocationState["boundary"][];
 const THREAT_SEVERITIES = ["low", "medium", "high", "lethal"] as const satisfies readonly SceneBeatThreatInput["severity"][];
 const MEMORY_CLAIM_KINDS = [
   "mundane",
@@ -75,17 +73,18 @@ function normalizeSceneBeatProgressInput(params: unknown): SceneBeatProgressInpu
         title: assertString(input["title"], "title"),
         objectives: assertStringArray(input["objectives"], "objectives"),
         purpose: assertString(input["purpose"], "purpose"),
+        time: normalizeTurnTimePolicy(input["time"], "time"),
         beatId: normalizeOptionalString(input["beatId"], "beatId"),
         actionPolicy: normalizeOptionalActionPolicy(input["actionPolicy"]),
         threats: normalizeOptionalThreats(input["threats"]),
         presence: normalizeOptionalPresence(input["presence"]),
         situation: normalizeOptionalSituation(input["situation"], "situation"),
-        locationMove: normalizeOptionalLocationMove(input["locationMove"]),
       };
     case "complete":
       return {
         kind,
         outcome: assertString(input["outcome"], "outcome"),
+        time: normalizeTurnTimePolicy(input["time"], "time"),
         memory: normalizeOptionalMemory(input["memory"]),
         nextBeat: normalizeOptionalNextBeat(input["nextBeat"]),
         presence: normalizeOptionalPresence(input["presence"]),
@@ -139,17 +138,6 @@ function normalizeOptionalPresence(value: unknown): SceneBeatPresenceInput | und
   };
 }
 
-function normalizeOptionalLocationMove(value: unknown): SceneBeatLocationMoveInput | undefined {
-  if (value === undefined) {
-    return undefined;
-  }
-  const input = assertRecord(value, "locationMove");
-  return {
-    location: normalizeLocation(input["location"]),
-    elapsedMinutes: normalizePositiveInteger(input["elapsedMinutes"], "locationMove.elapsedMinutes"),
-  };
-}
-
 function normalizeOptionalMemory(value: unknown): SceneBeatMemoryInput | undefined {
   if (value === undefined) {
     return undefined;
@@ -198,16 +186,6 @@ function normalizeClaims(value: unknown): MemoryClaim[] {
       evidence: normalizeOptionalString(claim["evidence"], `memory.claims[${index}].evidence`),
     };
   });
-}
-
-function normalizeLocation(value: unknown): LocationState {
-  const location = assertRecord(value, "locationMove.location");
-  return {
-    region: assertString(location["region"], "location.region"),
-    site: assertString(location["site"], "location.site"),
-    detail: assertString(location["detail"], "location.detail"),
-    boundary: assertOneOf(location["boundary"], "location.boundary", BOUNDARIES),
-  };
 }
 
 function normalizeOptionalSituation(value: unknown, fieldName: string): SituationKind | undefined {

@@ -6,22 +6,43 @@ import type { ServantFormEvent } from "../../engine/core/servant";
 import type { TurnCommitEvent, TurnCommitInput } from "../../engine/core/turn-commit";
 
 import { normalizeActorConditionEvent } from "./actor-condition-normalizer";
+import { normalizeTurnTimePolicy } from "./time-policy-normalizer";
 
 const DEFAULT_SUMMARY = "本轮状态变化。";
+const TURN_EVENT_KINDS = [
+  "scene",
+  "scene-presence",
+  "actor-condition",
+  "servant-form",
+  "economy",
+  "memory",
+] as const;
+const COMMIT_SCENE_EVENT_KINDS = [
+  "set-location",
+  "set-situation",
+  "set-story-window",
+  "clear-story-window",
+  "add-objective",
+  "resolve-objective",
+  "add-threat",
+  "clear-threat",
+] as const;
 
 export function normalizeTurnCommitInput(params: unknown): TurnCommitInput {
   const input = assertRecord(params, "commit_turn 参数");
   const rawEvents = assertArray(input["events"], "events");
-  const summary = normalizeSummary(input["summary"], rawEvents);
+  const time = normalizeTurnTimePolicy(input["time"], "time");
+  const summary = normalizeSummary(input["summary"], rawEvents, time.reason);
   return {
     summary,
+    time,
     events: rawEvents.map((event) => normalizeTurnCommitEvent(event, summary)),
   };
 }
 
 function normalizeTurnCommitEvent(value: unknown, summary: string): TurnCommitEvent {
   const event = assertRecord(value, "events[]");
-  const normalizedKind = normalizeTurnEventKind(event["kind"], event);
+  const normalizedKind = normalizeTurnEventKind(event["kind"]);
   switch (normalizedKind) {
     case "scene":
       return normalizeSceneTurnEvent(event, summary);
@@ -64,69 +85,16 @@ function normalizeTurnCommitEvent(value: unknown, summary: string): TurnCommitEv
   }
 }
 
-function normalizeTurnEventKind(rawKind: unknown, event: Record<string, unknown>): TurnCommitEvent["kind"] {
+function normalizeTurnEventKind(rawKind: unknown): TurnCommitEvent["kind"] {
   const kind = normalizeKindText(rawKind);
-  switch (kind) {
-    case "scene":
-    case "update-scene":
-    case "scene-event":
-      return "scene";
-    case "scene-presence":
-    case "set-scene-presence":
-    case "presence":
-      return "scene-presence";
-    case "actor-condition":
-    case "update-actor-condition":
-    case "condition":
-      return "actor-condition";
-    case "servant-form":
-    case "update-servant-form":
-    case "servant":
-      return "servant-form";
-    case "economy":
-    case "update-economy":
-    case "money":
-      return "economy";
-    case "memory":
-    case "record-memory":
-    case "record-major-event":
-    case "record-pinned-fact":
-    case "record-daily-summary":
-      return "memory";
-    default:
-      return inferTurnEventKindFromPayload(event);
+  for (const candidate of TURN_EVENT_KINDS) {
+    if (kind === candidate) {
+      return candidate;
+    }
   }
-}
-
-function inferTurnEventKindFromPayload(event: Record<string, unknown>): TurnCommitEvent["kind"] {
-  const payload = isRecord(event["event"]) ? event["event"] : event;
-  const domainKind = normalizeKindText(payload["kind"]);
-  switch (domainKind) {
-    case "advance-time":
-    case "move-location":
-    case "set-location":
-    case "set-situation":
-    case "set-story-window":
-    case "clear-story-window":
-    case "add-objective":
-    case "resolve-objective":
-    case "add-threat":
-    case "clear-threat":
-      return "scene";
-    case "set-scene-presence":
-      return "scene-presence";
-    case "record-major-event":
-    case "record-pinned-fact":
-    case "record-daily-summary":
-      return "memory";
-    case "spend-money":
-    case "gain-money":
-      return "economy";
-    default:
-      throw new Error(
-        `非法 commit_turn event.kind: ${formatUnknown(event["kind"])}。允许: scene / scene-presence / actor-condition / servant-form / economy / memory。`,
-      );
-  }
+  throw new Error(
+    `非法 commit_turn event.kind: ${formatUnknown(rawKind)}。允许: ${TURN_EVENT_KINDS.join(" / ")}。`,
+  );
 }
 
 function normalizeKindText(value: unknown): string {
@@ -164,11 +132,18 @@ function normalizeSceneTurnEvent(
 function normalizeSceneEventPayload(
   payload: Record<string, unknown> & { reason: string },
 ): Record<string, unknown> & { reason: string } {
-  if (payload["kind"] !== "resolve-objective") {
-    return payload;
+  const kind = normalizeKindText(payload["kind"]);
+  if (!COMMIT_SCENE_EVENT_KINDS.includes(kind as (typeof COMMIT_SCENE_EVENT_KINDS)[number])) {
+    throw new Error(
+      `非法 commit_turn scene.event.kind: ${formatUnknown(payload["kind"])}。允许: ${COMMIT_SCENE_EVENT_KINDS.join(" / ")}。`,
+    );
+  }
+  if (kind !== "resolve-objective") {
+    return { ...payload, kind };
   }
   return {
     ...payload,
+    kind,
     objectiveId: normalizeOptionalString(payload["objectiveId"]) ?? undefined,
     objectiveSummary: normalizeOptionalString(payload["objectiveSummary"]) ?? undefined,
   };
@@ -185,7 +160,11 @@ function normalizeScenePresenceInput(
   };
 }
 
-function normalizeSummary(value: unknown, events: readonly unknown[]): string {
+function normalizeSummary(
+  value: unknown,
+  events: readonly unknown[],
+  timeReason: string,
+): string {
   const explicit = normalizeOptionalString(value);
   if (explicit !== null) {
     return explicit;
@@ -195,6 +174,9 @@ function normalizeSummary(value: unknown, events: readonly unknown[]): string {
     if (reason !== null) {
       return reason;
     }
+  }
+  if (timeReason.trim().length > 0) {
+    return timeReason;
   }
   return DEFAULT_SUMMARY;
 }

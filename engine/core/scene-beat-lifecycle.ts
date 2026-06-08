@@ -7,12 +7,13 @@ import type {
   SceneBeatTransitionResult,
   SceneEventResult,
 } from "./scene";
-import type { ActorId, LocationState, SituationKind, StoryBeatId } from "./state";
+import type { ActorId, SituationKind, StoryBeatId, TurnTimePolicy } from "./state";
 
 import { setScenePresence } from "./actor";
 import { recordMemory } from "./memory";
-import { beginSceneBeat, moveToSceneBeat, transitionSceneBeat, updateScene } from "./scene";
-import { createId, getState, transactState } from "./state";
+import { beginSceneBeat, transitionSceneBeat, updateScene } from "./scene";
+import { appendTurnLogEntry, createId, getState, transactState } from "./state";
+import { applyTurnTime } from "./turn-time";
 
 export interface SceneBeatActionPolicy {
   allowedActions?: string[];
@@ -38,22 +39,18 @@ export interface SceneBeatBeginInput {
   title: string;
   objectives: string[];
   purpose: string;
+  time: TurnTimePolicy;
   beatId?: StoryBeatId;
   actionPolicy?: SceneBeatActionPolicy;
   threats?: SceneBeatThreatInput[];
   presence?: SceneBeatPresenceInput;
   situation?: SituationKind;
-  locationMove?: SceneBeatLocationMoveInput;
-}
-
-export interface SceneBeatLocationMoveInput {
-  location: LocationState;
-  elapsedMinutes: number;
 }
 
 export interface SceneBeatCompleteInput {
   kind: "complete";
   outcome: string;
+  time: TurnTimePolicy;
   memory?: SceneBeatMemoryInput;
   nextBeat?: SceneBeatNextBeatInput | null;
   presence?: SceneBeatPresenceInput;
@@ -76,11 +73,13 @@ export type SceneBeatProgressResult =
   | {
       kind: "begin";
       message: string;
+      time: SceneEventResult | null;
       beat: SceneBeatResult;
     }
   | {
       kind: "complete";
       message: string;
+      time: SceneEventResult | null;
       transition: SceneBeatTransitionResult;
       memory: MemoryEventResult | null;
       presence: ScenePresenceResult | null;
@@ -103,16 +102,18 @@ export function progressSceneBeat(input: SceneBeatProgressInput): SceneBeatProgr
 }
 
 function beginCurrentSceneBeat(input: SceneBeatBeginInput): SceneBeatProgressResult {
-  const beatInput = buildBeginSceneBeatInput(input);
-  const beat =
-    input.locationMove === undefined
-      ? beginSceneBeat(beatInput)
-      : moveToSceneBeat({
-          ...beatInput,
-          location: input.locationMove.location,
-          elapsedMinutes: input.locationMove.elapsedMinutes,
-        });
-  return { kind: "begin", message: beat.message, beat };
+  const startedAt = getState().public.clock.currentAt;
+  const time = applyTurnTime(input.time);
+  const beat = beginSceneBeat(buildBeginSceneBeatInput(input));
+  appendTurnLogEntry({
+    summary: input.purpose,
+    startedAt,
+    endedAt: getState().public.clock.currentAt,
+    time: input.time,
+    eventCount: 1,
+    resultCount: time === null ? 1 : 2,
+  });
+  return { kind: "begin", message: formatBeginMessage(time, beat), time, beat };
 }
 
 function completeCurrentSceneBeat(input: SceneBeatCompleteInput): SceneBeatProgressResult {
@@ -124,6 +125,8 @@ function completeCurrentSceneBeat(input: SceneBeatCompleteInput): SceneBeatProgr
     );
   }
 
+  const startedAt = getState().public.clock.currentAt;
+  const time = applyTurnTime(input.time);
   const transition = transitionSceneBeat({
     completedBeatId: currentWindow.currentBeatId,
     resolveAllObjectives: true,
@@ -142,9 +145,19 @@ function completeCurrentSceneBeat(input: SceneBeatCompleteInput): SceneBeatProgr
     ? updateScene({ kind: "set-situation", situation: input.situation, reason: input.outcome })
     : null;
 
+  appendTurnLogEntry({
+    summary: input.outcome,
+    startedAt,
+    endedAt: getState().public.clock.currentAt,
+    time: input.time,
+    eventCount: countCompleteInputEvents(input),
+    resultCount: countCompleteResults(time, memory, presence, situation),
+  });
+
   return {
     kind: "complete",
-    message: formatCompleteMessage(transition, memory, presence, situation),
+    message: formatCompleteMessage(time, transition, memory, presence, situation),
+    time,
     transition,
     memory,
     presence,
@@ -210,6 +223,27 @@ function buildMemoryEvent(input: SceneBeatMemoryInput): MemoryEvent {
   };
 }
 
+function countCompleteInputEvents(input: SceneBeatCompleteInput): number {
+  let count = 1;
+  if (input.memory !== undefined) count += 1;
+  if (shouldApplyPostCompletionPresence(input)) count += 1;
+  if (shouldApplyPostCompletionSituation(input)) count += 1;
+  return count;
+}
+
+function countCompleteResults(
+  time: SceneEventResult | null,
+  memory: MemoryEventResult | null,
+  presence: ScenePresenceResult | null,
+  situation: SceneEventResult | null,
+): number {
+  let count = time === null ? 1 : 2;
+  if (memory !== null) count += 1;
+  if (presence !== null) count += 1;
+  if (situation !== null) count += 1;
+  return count;
+}
+
 function shouldApplyPostCompletionPresence(input: SceneBeatCompleteInput): boolean {
   return input.nextBeat === undefined || input.nextBeat === null
     ? input.presence !== undefined
@@ -222,13 +256,21 @@ function shouldApplyPostCompletionSituation(
   return (input.nextBeat === undefined || input.nextBeat === null) && input.situation !== undefined;
 }
 
+function formatBeginMessage(time: SceneEventResult | null, beat: SceneBeatResult): string {
+  if (time === null) {
+    return beat.message;
+  }
+  return `${time.message}\n${beat.message}`;
+}
+
 function formatCompleteMessage(
+  time: SceneEventResult | null,
   transition: SceneBeatTransitionResult,
   memory: MemoryEventResult | null,
   presence: ScenePresenceResult | null,
   situation: SceneEventResult | null,
 ): string {
-  const lines = [transition.message];
+  const lines = time === null ? [transition.message] : [time.message, transition.message];
   if (memory !== null) {
     lines.push("Campaign Memory 已记录。");
   }

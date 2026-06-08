@@ -1,39 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { beginSceneBeat, moveToSceneBeat, transitionSceneBeat, updateScene } from "./scene";
+import { beginSceneBeat, transitionSceneBeat, updateScene } from "./scene";
 import { getState, resetState } from "./state";
-
-void test("updateScene advances time without changing location", () => {
-  resetState();
-
-  updateScene({ kind: "advance-time", elapsedMinutes: 420, reason: "过夜守到清晨" });
-
-  const state = getState();
-  assert.equal(state.public.clock.currentAt, "2004-01-30T14:00:00.000Z");
-  assert.equal(state.public.scene.location.detail, "穗群原学园·校门外");
-  assert.equal(state.public.scene.lastResolvedAt, "2004-01-30T14:00:00.000Z");
-});
-
-void test("updateScene moves location and advances clock", () => {
-  resetState();
-
-  updateScene({
-    kind: "move-location",
-    location: {
-      region: "冬木市",
-      site: "深山镇",
-      detail: "卫宫邸",
-      boundary: "normal",
-    },
-    elapsedMinutes: 30,
-    reason: "步行回家",
-  });
-
-  const state = getState();
-  assert.equal(state.public.scene.location.detail, "卫宫邸");
-  assert.equal(state.public.clock.currentAt, "2004-01-30T07:30:00.000Z");
-});
 
 void test("updateScene can correct current location without advancing time", () => {
   resetState();
@@ -52,55 +21,6 @@ void test("updateScene can correct current location without advancing time", () 
   const state = getState();
   assert.equal(state.public.scene.location.detail, "公园长椅旁");
   assert.equal(state.public.clock.currentAt, "2004-01-30T07:00:00.000Z");
-});
-
-void test("updateScene rejects zero elapsed movement", () => {
-  resetState();
-
-  assert.throws(
-    () =>
-      updateScene({
-        kind: "move-location",
-        location: {
-          region: "冬木市",
-          site: "深山镇",
-          detail: "卫宫邸",
-          boundary: "normal",
-        },
-        elapsedMinutes: 0,
-        reason: "误把无时间经过写成移动",
-      }),
-    /elapsedMinutes: 0/,
-  );
-});
-
-void test("moveToSceneBeat rejects zero elapsed movement", () => {
-  resetState();
-
-  assert.throws(
-    () =>
-      moveToSceneBeat({
-        storyWindow: {
-          currentArcId: "B1",
-          currentBeatId: "bad-zero-time-beat",
-          title: "错误零时间移动 beat",
-          allowedActions: ["观察"],
-          forbiddenEscalations: [],
-          completionCriteria: ["记录"],
-          nextBeatHints: [],
-        },
-        objectives: ["记录"],
-        location: {
-          region: "冬木市",
-          site: "深山镇",
-          detail: "卫宫邸",
-          boundary: "normal",
-        },
-        elapsedMinutes: 0,
-        reason: "误把无时间经过写成移动 beat",
-      }),
-    /elapsedMinutes: 0/,
-  );
 });
 
 void test("updateScene creates objective ids after existing state ids", () => {
@@ -170,42 +90,6 @@ void test("beginSceneBeat creates window objectives threats and presence togethe
   assert.match(result.threatIds[0] ?? "", /^threat-\d+$/);
 });
 
-void test("moveToSceneBeat moves location advances clock and opens beat atomically", () => {
-  resetState();
-
-  const result = moveToSceneBeat({
-    storyWindow: {
-      currentArcId: "B1",
-      currentBeatId: "ryudou-scouting-approach",
-      title: "柳洞寺外围侦察",
-      allowedActions: ["观察山门", "安全撤回"],
-      forbiddenEscalations: ["不得触发佐佐木小次郎正面战"],
-      completionCriteria: ["确认结界", "安全撤回"],
-      nextBeatHints: [],
-    },
-    objectives: ["确认结界", "安全撤回"],
-    threats: [{ summary: "山门守卫", severity: "high" }],
-    presentActorIds: ["protagonist"],
-    situation: "investigation",
-    location: {
-      region: "冬木市",
-      site: "円藏山",
-      detail: "柳洞寺外围·山道",
-      boundary: "normal",
-    },
-    elapsedMinutes: 25,
-    reason: "从穗群原学园前往柳洞寺外围侦察",
-  });
-
-  const state = getState();
-  assert.equal(state.public.clock.currentAt, "2004-01-30T07:25:00.000Z");
-  assert.equal(state.public.scene.location.detail, "柳洞寺外围·山道");
-  assert.equal(state.public.scene.storyWindow?.currentBeatId, "ryudou-scouting-approach");
-  assert.equal(state.public.scene.objectives.length, 2);
-  assert.equal(result.objectiveIds.length, 2);
-  assert.equal(result.threatIds.length, 1);
-});
-
 void test("beginSceneBeat rejects opening over an active beat", () => {
   resetState();
 
@@ -242,53 +126,6 @@ void test("beginSceneBeat rejects opening over an active beat", () => {
   );
 
   assert.equal(getState().public.scene.storyWindow?.currentBeatId, "active-beat");
-});
-
-void test("moveToSceneBeat rejects opening over an active beat", () => {
-  resetState();
-
-  beginSceneBeat({
-    storyWindow: {
-      currentArcId: "B1",
-      currentBeatId: "active-beat",
-      title: "当前 beat",
-      allowedActions: ["观察"],
-      forbiddenEscalations: [],
-      completionCriteria: ["记录"],
-      nextBeatHints: [],
-    },
-    objectives: ["记录"],
-    reason: "设置当前 beat",
-  });
-
-  assert.throws(
-    () =>
-      moveToSceneBeat({
-        storyWindow: {
-          currentArcId: "B1",
-          currentBeatId: "second-beat",
-          title: "第二个 beat",
-          allowedActions: ["观察"],
-          forbiddenEscalations: [],
-          completionCriteria: ["记录"],
-          nextBeatHints: [],
-        },
-        objectives: ["记录"],
-        location: {
-          region: "冬木市",
-          site: "深山镇",
-          detail: "商店街",
-          boundary: "normal",
-        },
-        elapsedMinutes: 10,
-        reason: "不能移动时叠开 beat",
-      }),
-    /当前已有 active beat active-beat/,
-  );
-
-  const state = getState();
-  assert.equal(state.public.scene.storyWindow?.currentBeatId, "active-beat");
-  assert.equal(state.public.clock.currentAt, "2004-01-30T07:00:00.000Z");
 });
 
 void test("updateScene set-story-window rejects replacing an active beat", () => {

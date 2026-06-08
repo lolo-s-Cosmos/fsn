@@ -92,7 +92,7 @@ export interface GameState {
 }
 
 export interface StateMeta {
-  schemaVersion: 1;
+  schemaVersion: 2;
   createdAt: string;
   updatedAt: string;
 }
@@ -107,6 +107,7 @@ export interface PublicGameState {
   allyActorIds: ActorId[];
   economy: EconomyState;
   memory: CampaignMemory;
+  turnLog: TurnLogEntry[];
 }
 
 export interface SecretGameState {
@@ -161,6 +162,21 @@ export interface SceneThreat {
   id: SceneThreatId;
   summary: string;
   severity: SceneThreatSeverity;
+}
+
+export type TurnTimePolicy =
+  | { kind: "none"; reason: string }
+  | { kind: "elapsed"; elapsedMinutes: number; reason: string }
+  | { kind: "travel"; location: LocationState; elapsedMinutes: number; reason: string };
+
+export interface TurnLogEntry {
+  id: string;
+  summary: string;
+  startedAt: string;
+  endedAt: string;
+  time: TurnTimePolicy;
+  eventCount: number;
+  resultCount: number;
 }
 
 export interface LocationState {
@@ -524,7 +540,7 @@ export interface PatchOp {
 
 export type StatePatchPath = never;
 
-export const CURRENT_STATE_SCHEMA_VERSION = 1;
+export const CURRENT_STATE_SCHEMA_VERSION = 2;
 
 const SESSION_KEY = "fsn-state";
 const DEBUG_STATE_PATH = "state/state.json";
@@ -599,6 +615,22 @@ export function resetState(): State {
 export function hydrateState(raw: unknown): void {
   const state = assertState(raw);
   setStore(state);
+}
+
+export function migrateState(raw: unknown): State {
+  return assertState(raw);
+}
+
+export function appendTurnLogEntry(input: Omit<TurnLogEntry, "id">): TurnLogEntry {
+  let entry: TurnLogEntry;
+  updateState((draft) => {
+    entry = {
+      id: nextTurnLogId(draft.public.turnLog),
+      ...input,
+    };
+    draft.public.turnLog.push(entry);
+  });
+  return entry!;
 }
 
 export function toSessionEntry(state: State): Record<string, unknown> {
@@ -722,6 +754,16 @@ function toStateExport(state: State): StateExport {
   };
 }
 
+function nextTurnLogId(entries: readonly TurnLogEntry[]): string {
+  let highest = 0;
+  for (const entry of entries) {
+    const suffix = entry.id.startsWith("turn-") ? entry.id.slice("turn-".length) : "";
+    if (!/^\d+$/.test(suffix)) continue;
+    highest = Math.max(highest, Number(suffix));
+  }
+  return `turn-${highest + 1}`;
+}
+
 function highestExistingIdNumber(prefix: string): number {
   const marker = `${prefix}-`;
   let highest = 0;
@@ -820,6 +862,7 @@ function createInitialState(): State {
         eventLog: [],
         dailySummaries: [],
       },
+      turnLog: [],
     },
     secrets: {
       actorSecrets: {},
@@ -863,10 +906,45 @@ function assertState(raw: unknown): State {
   if (!isRecord(stateRaw)) {
     throw new Error(`非法状态: ${formatUnknown(raw)}。state 必须是对象。`);
   }
-  return assertGameStateV1(stateRaw);
+  return assertGameStateV2(migrateRawGameState(stateRaw));
 }
 
-function assertGameStateV1(raw: Record<string, unknown>): State {
+function migrateRawGameState(raw: Record<string, unknown>): Record<string, unknown> {
+  const version = readRawSchemaVersion(raw);
+  switch (version) {
+    case 1:
+      return migrateGameStateV1ToV2(raw);
+    case CURRENT_STATE_SCHEMA_VERSION:
+      return raw;
+    default:
+      throw new Error(
+        `不支持的 state schemaVersion: ${version}。当前支持从 1 迁移到 ${CURRENT_STATE_SCHEMA_VERSION}。`,
+      );
+  }
+}
+
+function readRawSchemaVersion(raw: Record<string, unknown>): number {
+  const meta = assertRecordForMigration(raw["meta"], "meta");
+  return assertInteger(meta["schemaVersion"], "meta.schemaVersion");
+}
+
+function migrateGameStateV1ToV2(raw: Record<string, unknown>): Record<string, unknown> {
+  const next = structuredClone(raw);
+  const meta = assertRecordForMigration(next["meta"], "meta");
+  meta["schemaVersion"] = CURRENT_STATE_SCHEMA_VERSION;
+  const publicState = assertRecordForMigration(next["public"], "public");
+  publicState["turnLog"] = [];
+  return next;
+}
+
+function assertRecordForMigration(value: unknown, fieldName: string): Record<string, unknown> {
+  if (!isRecord(value)) {
+    throw new Error(`非法 ${fieldName}: ${formatUnknown(value)}。迁移需要对象。`);
+  }
+  return value;
+}
+
+function assertGameStateV2(raw: Record<string, unknown>): State {
   const meta = assertMeta(raw["meta"]);
   const publicState = assertPublicGameState(raw["public"]);
   const secrets = assertSecretGameState(raw["secrets"]);
@@ -876,6 +954,12 @@ function assertGameStateV1(raw: Record<string, unknown>): State {
 function assertMeta(raw: unknown): StateMeta {
   if (!isRecord(raw)) {
     throw new Error(`非法 meta: ${formatUnknown(raw)}。`);
+  }
+  const schemaVersion = assertInteger(raw["schemaVersion"], "meta.schemaVersion");
+  if (schemaVersion !== CURRENT_STATE_SCHEMA_VERSION) {
+    throw new Error(
+      `非法 meta.schemaVersion: ${schemaVersion}。必须是 ${CURRENT_STATE_SCHEMA_VERSION}。`,
+    );
   }
   return {
     schemaVersion: CURRENT_STATE_SCHEMA_VERSION,
@@ -908,6 +992,7 @@ function assertPublicGameState(raw: unknown): PublicGameState {
     allyActorIds,
     economy: assertEconomyState(raw["economy"], actors),
     memory: assertCampaignMemory(raw["memory"]),
+    turnLog: assertTurnLog(raw["turnLog"]),
   };
 }
 
@@ -939,6 +1024,62 @@ function assertClockState(raw: unknown): ClockState {
         ? null
         : assertIsoDateString(raw["lastLongRestAt"], "clock.lastLongRestAt"),
   };
+}
+
+function assertTurnLog(raw: unknown): TurnLogEntry[] {
+  return assertArray(raw, "turnLog").map((entry, index) =>
+    assertTurnLogEntry(entry, `turnLog[${index}]`),
+  );
+}
+
+function assertTurnLogEntry(raw: unknown, fieldName: string): TurnLogEntry {
+  if (!isRecord(raw)) {
+    throw new Error(`非法 ${fieldName}: ${formatUnknown(raw)}。`);
+  }
+  return {
+    id: assertNonEmptyString(raw["id"], `${fieldName}.id`),
+    summary: assertNonEmptyString(raw["summary"], `${fieldName}.summary`),
+    startedAt: assertIsoDateString(raw["startedAt"], `${fieldName}.startedAt`),
+    endedAt: assertIsoDateString(raw["endedAt"], `${fieldName}.endedAt`),
+    time: assertTurnTimePolicy(raw["time"], `${fieldName}.time`),
+    eventCount: assertNonNegativeInteger(raw["eventCount"], `${fieldName}.eventCount`),
+    resultCount: assertNonNegativeInteger(raw["resultCount"], `${fieldName}.resultCount`),
+  };
+}
+
+function assertTurnTimePolicy(raw: unknown, fieldName: string): TurnTimePolicy {
+  if (!isRecord(raw)) {
+    throw new Error(`非法 ${fieldName}: ${formatUnknown(raw)}。`);
+  }
+  const kind = assertOneOf(raw["kind"], TURN_TIME_KINDS, `${fieldName}.kind`);
+  const reason = assertNonEmptyString(raw["reason"], `${fieldName}.reason`);
+  switch (kind) {
+    case "none":
+      return { kind, reason };
+    case "elapsed":
+      return {
+        kind,
+        elapsedMinutes: assertPositiveElapsedMinutes(raw["elapsedMinutes"], fieldName),
+        reason,
+      };
+    case "travel":
+      return {
+        kind,
+        location: assertLocationState(raw["location"], `${fieldName}.location`),
+        elapsedMinutes: assertPositiveElapsedMinutes(raw["elapsedMinutes"], fieldName),
+        reason,
+      };
+    default:
+      throw new Error("unreachable turn time kind");
+  }
+}
+
+function assertPositiveElapsedMinutes(value: unknown, fieldName: string): number {
+  const elapsedMinutes = assertNonNegativeInteger(value, `${fieldName}.elapsedMinutes`);
+  if (elapsedMinutes === 0) {
+    throw new Error(`${fieldName}.elapsedMinutes 必须大于 0。`);
+  }
+  return elapsedMinutes;
 }
 
 function assertSceneState(raw: unknown, actors: Record<ActorId, PublicActorState>): SceneState {
@@ -1888,6 +2029,7 @@ const SITUATIONS = [
   "escape",
   "downtime",
 ] as const;
+const TURN_TIME_KINDS = ["none", "elapsed", "travel"] as const;
 const OBJECTIVE_STATUSES = ["active", "blocked", "resolved"] as const;
 const THREAT_SEVERITIES = ["low", "medium", "high", "lethal"] as const;
 const ACTOR_KINDS = ["human", "outsider", "spirit", "other"] as const;

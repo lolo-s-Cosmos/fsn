@@ -4,6 +4,7 @@ import { Type } from "typebox";
 
 import { exportStateTool } from "./debug/export-state";
 import { getStateSchemaTool } from "./debug/get-state-schema";
+import { migrateStateTool } from "./debug/migrate-state";
 import { overrideLockedFactTool } from "./debug/override-locked-fact";
 import { resetStateTool } from "./debug/reset-state";
 import { lookupTool } from "./lookup/lookup";
@@ -21,7 +22,6 @@ import { revealSecretTool } from "./state/reveal-secret";
 import { setScenePresenceTool } from "./state/set-scene-presence";
 import { updateActorConditionTool } from "./state/update-actor-condition";
 import { updateEconomyTool } from "./state/update-economy";
-import { updateSceneTool } from "./state/update-scene";
 import { updateServantFormTool } from "./state/update-servant-form";
 import { upsertActorTool } from "./state/upsert-actor";
 
@@ -88,7 +88,7 @@ export function registerAllTools(pi: ExtensionAPI): void {
       "- 当前存档 campaign.timeline/timezone 与实际地点不一致，需要热修\n\n" +
       "【严禁的行为】\n" +
       "- 在剧情中随意改时间线或时区来逃避后果\n" +
-      "- 用它替代 Scene Beat 或普通地点移动；复杂 beat 用 progress_scene_beat，普通移动用 commit_turn / update_scene\n" +
+      "- 用它替代 Scene Beat 或普通地点移动；复杂 beat 用 progress_scene_beat，普通移动用 commit_turn\n" +
       "- 未写 reason 就修改 campaign 语义",
     parameters: Type.Object({
       presetId: Type.String({
@@ -131,12 +131,13 @@ export function registerAllTools(pi: ExtensionAPI): void {
     description:
       "每轮叙事结束时一次性提交本轮发生的领域事件；用于降低 GM 对多个状态工具顺序的注意力负担。\n\n" +
       "【必须调用的场景】\n" +
-      "- 用户要求等待、休息、睡眠、过夜、守夜到某个时段，且本轮还有 condition / servant / memory 等状态变化：必须在 events 中包含 scene advance-time；没有其他变化时用 update_scene kind=advance-time\n" +
+      "- 每次 canonical turn 都必须提交 time；等待、休息、睡眠、过夜、守夜、调查、治疗、移动都必须在顶层 time 裁决\n" +
       "- 一轮回复同时改变时间/地点、Scene Objective、伤势、物品、资金、记忆或从者资源中的多个状态\n" +
       "- 叙事已经发生购买、治疗、移动、揭示、消耗、战斗结算等 canonical Game State 变化\n" +
       "- 一轮回复同时改变非 beat lifecycle 的多个状态；Scene Beat 开启/收口必须优先用 progress_scene_beat\n\n" +
       "【严禁的行为】\n" +
       "- 把它当裸 patch；events 必须是已有领域事件\n" +
+      "- 在 events 里写时间或移动；时间与移动只写顶层 time\n" +
       "- 提交 Hidden Fact 到 Public Game State；秘密仍必须走 reveal_secret/private_resolve/record_offscreen_event\n" +
       "- 没有状态变化时为了形式调用",
     parameters: Type.Object({
@@ -145,15 +146,16 @@ export function registerAllTools(pi: ExtensionAPI): void {
           description: "本轮玩家可见状态变化摘要；省略时工具会从事件 reason 自动生成",
         }),
       ),
+      time: timePolicySchema(),
       events: Type.Array(
         Type.Object({
           kind: Type.String({
             description:
-              "领域事件类别。推荐值: scene / scene-presence / actor-condition / servant-form / economy / memory；也兼容 update-scene、set-scene-presence、record-memory 等常见别名。Scene Beat lifecycle 不走 commit_turn，改用 progress_scene_beat。",
+              "领域事件类别，只允许: scene / scene-presence / actor-condition / servant-form / economy / memory。Scene Beat lifecycle 不走 commit_turn，改用 progress_scene_beat。",
           }),
           event: Type.Unknown({
             description:
-              "对应领域事件载荷；等待/休息/过夜用 scene {kind:'advance-time', elapsedMinutes, reason}；scene-presence 使用 {presentActorIds, allyActorIds}，也可兼容 scene event kind='set-scene-presence'；resolve-objective 可用 objectiveSummary，不要传 undefined。Scene Beat lifecycle 不要手写事件 AST，改用 progress_scene_beat。",
+              "对应领域事件载荷；scene event 不包含时间/移动，只允许 scene 态势、目标、威胁、地点修正；resolve-objective 可用 objectiveSummary，不要传 undefined。",
           }),
         }),
       ),
@@ -170,7 +172,7 @@ export function registerAllTools(pi: ExtensionAPI): void {
       "【必须调用的场景】\n" +
       "- 进入新的调查、潜入、对峙、撤退、战斗准备等复杂场景，需要 1-5 个当前目标：kind=begin\n" +
       "- 当前 beat 已经收口，需要一次性解决全部 active Scene Objective、清理 Scene Threat、可选记录 Campaign Memory、可选进入 nextBeat：kind=complete\n" +
-      "- 进入复杂 beat 的同时发生移动或时间推进：kind=begin 并提供 locationMove.location + locationMove.elapsedMinutes\n\n" +
+      "- 进入或收口 beat 时必须填写 time；移动用 time.kind=travel，短促即时动作用 time.kind=none\n\n" +
       "【严禁的行为】\n" +
       "- 用它记录长期目标或幕后真相；长期后果写 memory，秘密走 reveal/private_resolve/offscreen\n" +
       "- 未满足当前 completionCriteria 就强行 complete；失败/撤退可以 complete，但 outcome 必须写明代价或后果\n" +
@@ -187,6 +189,7 @@ export function registerAllTools(pi: ExtensionAPI): void {
       ),
       purpose: Type.Optional(Type.String({ description: "begin 必填：为什么进入这个 beat" })),
       outcome: Type.Optional(Type.String({ description: "complete 必填：当前 beat 收口结果" })),
+      time: timePolicySchema(),
       beatId: Type.Optional(Type.String({ description: "可选；begin 省略时自动生成" })),
       actionPolicy: Type.Optional(sceneBeatActionPolicySchema()),
       threats: Type.Optional(
@@ -199,14 +202,6 @@ export function registerAllTools(pi: ExtensionAPI): void {
       ),
       presence: Type.Optional(sceneBeatPresenceSchema()),
       situation: Type.Optional(situationSchema()),
-      locationMove: Type.Optional(
-        Type.Object({
-          location: locationSchema(),
-          elapsedMinutes: Type.Unknown({
-            description: "必须是大于 0 的整数；可填 number 或数字字符串",
-          }),
-        }),
-      ),
       memory: Type.Optional(sceneBeatMemorySchema()),
       nextBeat: Type.Optional(
         Type.Unknown({
@@ -233,58 +228,6 @@ export function registerAllTools(pi: ExtensionAPI): void {
     parameters: Type.Object({}),
     execute: async (_toolCallId, _params, _signal, _onUpdate, ctx) =>
       getStatusTool(ctx.sessionManager),
-  });
-
-  pi.registerTool({
-    label: toolLabel,
-    name: "update_scene",
-    description:
-      "按领域事件更新时间、地点、场景态势、剧情窗口、目标、威胁。\n\n" +
-      "【必须调用的场景】\n" +
-      "- 用户要求等待、休息、睡眠、过夜、守夜到某个时段，且本轮没有其他状态变化：用 kind=advance-time，只提供 elapsedMinutes，不要伪造地点移动\n" +
-      "- 玩家移动地点或时间推进，且本轮没有其他状态变化\n" +
-      "- 用户/续局明确声明当前地点与状态不一致，只需修正地点且不推进时间：用 kind=set-location\n" +
-      "- 场景态势切换为日常、调查、社交、战斗、仪式、逃跑、整备\n" +
-      "- 单个当前目标/威胁变化；复杂 beat 开启或收口用 progress_scene_beat，多事件非常规组合用 commit_turn\n\n" +
-      "【严禁的行为】\n" +
-      "- 用叙事直接跳过时间或改变地点但不调用工具\n" +
-      "- 只有等待/休息/过夜时不要用 move-location；必须用 advance-time 或 commit_turn 内的 scene advance-time\n" +
-      "- 用 set-location 表示剧情中的移动；剧情移动必须用 move-location 并提供 elapsedMinutes > 0\n" +
-      "- 在复杂 beat 中手动拼 set-story-window/add-objective；改用 progress_scene_beat\n" +
-      "- 一轮内同时移动、完成目标、记录 memory，却绕过 commit_turn\n" +
-      "- 越过当前 storyWindow.forbiddenEscalations 或未满足 completionCriteria 就提前进入下一战斗\n" +
-      "- 在场 NPC 尚未写入 actor registry 时调用 private_resolve 或把 actorId 编出来\n" +
-      "- 把长期目标塞进 scene；场景结束后应写入 memory",
-    parameters: Type.Object({
-      kind: Type.String({
-        description:
-          "允许: advance-time / move-location / set-location / set-situation / set-story-window / clear-story-window / add-objective / resolve-objective / add-threat / clear-threat",
-      }),
-      location: Type.Optional(locationSchema()),
-      elapsedMinutes: Type.Optional(
-        Type.Unknown({ description: "分钟数；可填 number 或数字字符串，由领域工具校验。" }),
-      ),
-      situation: Type.Optional(situationSchema()),
-      storyWindow: Type.Optional(storyWindowSchema()),
-      summary: Type.Optional(
-        Type.String({ description: "add-objective/add-threat 必填：目标或威胁的玩家可见摘要" }),
-      ),
-      objectiveId: Type.Optional(
-        Type.String({
-          description: "resolve-objective 可选；不确定 id 时不要传空字符串，改用 objectiveSummary",
-        }),
-      ),
-      objectiveSummary: Type.Optional(
-        Type.String({
-          description: "resolve-objective 可选：目标原文或片段；不确定 objectiveId 时优先填此字段",
-        }),
-      ),
-      threatId: Type.Optional(Type.String()),
-      severity: Type.Optional(threatSeveritySchema()),
-      reason: Type.String(),
-    }),
-    execute: async (_toolCallId, params, _signal, _onUpdate, ctx) =>
-      updateSceneTool(params, ctx.sessionManager),
   });
 
   pi.registerTool({
@@ -767,6 +710,19 @@ export function registerAllTools(pi: ExtensionAPI): void {
 
   pi.registerTool({
     label: toolLabel,
+    name: "migrate_state",
+    description:
+      "【调试工具】把旧 Game State 程序化迁移到当前 schemaVersion；默认只返回迁移结果，apply=true 时覆盖当前内存状态。必须写明 reason。",
+    parameters: Type.Object({
+      state: Type.Optional(Type.Unknown()),
+      apply: Type.Optional(Type.Boolean()),
+      reason: Type.String(),
+    }),
+    execute: async (_toolCallId, params) => migrateStateTool(params),
+  });
+
+  pi.registerTool({
+    label: toolLabel,
     name: "reset_state",
     description:
       "【调试工具】重置为新 Fate schema 初始状态；不做旧 schema migration。必须写明 reason。",
@@ -828,20 +784,6 @@ function sceneBeatMemorySchema(): ReturnType<typeof Type.Object> {
         evidence: Type.Optional(Type.String()),
       }),
     ),
-  });
-}
-
-function storyWindowSchema(): ReturnType<typeof Type.Object> {
-  return Type.Object({
-    currentArcId: Type.String({ description: "当前 arc id，如 B2" }),
-    currentBeatId: Type.String({ description: "当前 beat id，如 ryudou-scouting-wrapup" }),
-    title: Type.String({ description: "玩家可见剧情窗口标题" }),
-    allowedActions: Type.Array(Type.String({ description: "本 beat 允许推进的行动边界" })),
-    forbiddenEscalations: Type.Array(
-      Type.String({ description: "本 beat 禁止提前触发或公开的升级" }),
-    ),
-    completionCriteria: Type.Array(Type.String({ description: "本 beat 完成条件" })),
-    nextBeatHints: Type.Array(Type.String({ description: "不泄密的后续问题或钩子" })),
   });
 }
 
@@ -1040,6 +982,17 @@ function locationSchema(): ReturnType<typeof Type.Object> {
     boundary: Type.String({
       description: "地点边界类型，允许: normal / bounded-field / reality-marble / otherworld",
     }),
+  });
+}
+
+function timePolicySchema(): ReturnType<typeof Type.Object> {
+  return Type.Object({
+    kind: Type.String({ description: "允许: none / elapsed / travel" }),
+    elapsedMinutes: Type.Optional(
+      Type.Unknown({ description: "kind=elapsed/travel 必填；大于 0 的整数" }),
+    ),
+    location: Type.Optional(locationSchema()),
+    reason: Type.String({ description: "为什么本轮耗时、移动，或为什么没有耗时" }),
   });
 }
 

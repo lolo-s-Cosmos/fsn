@@ -10,14 +10,16 @@ import type {
   SceneEventResult,
 } from "./scene";
 import type { ServantFormEvent, ServantFormEventResult } from "./servant";
+import type { TurnTimePolicy } from "./state";
 
 import { setScenePresence } from "./actor";
 import { updateActorCondition } from "./actor-condition";
 import { updateEconomy } from "./economy";
 import { recordMemory } from "./memory";
-import { beginSceneBeat, moveToSceneBeat, transitionSceneBeat, updateScene } from "./scene";
+import { beginSceneBeat, transitionSceneBeat, updateScene } from "./scene";
 import { updateServantForm } from "./servant";
-import { assertNonEmptyString, getState, transactState } from "./state";
+import { appendTurnLogEntry, assertNonEmptyString, getState, transactState } from "./state";
+import { applyTurnTime, turnTimeChangesClock } from "./turn-time";
 
 export type TurnCommitEvent =
   | { kind: "scene"; event: SceneEvent }
@@ -30,6 +32,7 @@ export type TurnCommitEvent =
 
 export interface TurnCommitInput {
   summary: string;
+  time: TurnTimePolicy;
   events: TurnCommitEvent[];
 }
 
@@ -54,13 +57,27 @@ export function commitTurn(input: TurnCommitInput): TurnCommitResult {
 
 function commitCanonicalTurn(input: TurnCommitInput): TurnCommitResult {
   const summary = assertNonEmptyString(input.summary, "summary");
-  if (input.events.length === 0) {
-    throw new Error("commit_turn 至少需要一个领域事件；若本轮没有状态变化，请不要调用。");
+  if (input.events.length === 0 && !turnTimeChangesClock(input.time)) {
+    throw new Error(
+      "commit_turn 至少需要一个领域事件或 time.kind != none；若本轮没有状态变化，请不要调用。",
+    );
   }
 
+  const startedAt = getState().public.clock.currentAt;
+  const timeResult = applyTurnTime(input.time);
   const results = input.events.map(applyTurnEvent);
+  const timeResults = timeResult === null ? [] : [{ kind: "scene" as const, result: timeResult }];
   const autoCloseResult = closeCompletedOpenStoryWindow();
-  const finalResults = autoCloseResult === null ? results : [...results, autoCloseResult];
+  const baseResults = [...timeResults, ...results];
+  const finalResults = autoCloseResult === null ? baseResults : [...baseResults, autoCloseResult];
+  appendTurnLogEntry({
+    summary,
+    startedAt,
+    endedAt: getState().public.clock.currentAt,
+    time: input.time,
+    eventCount: input.events.length,
+    resultCount: finalResults.length,
+  });
   const warnings = collectWarnings();
   return {
     message: formatMessage(summary, finalResults, warnings),
@@ -98,8 +115,6 @@ function applySceneBeatEvent(
       return beginSceneBeat(event.input);
     case "transition-beat":
       return transitionSceneBeat(event.input);
-    case "move-location":
-      return moveToSceneBeat(event.input);
     default:
       throw new Error("unreachable scene beat event kind");
   }

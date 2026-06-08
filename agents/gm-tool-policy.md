@@ -22,11 +22,11 @@ This Module only decides whether to call tools and which tool has priority. Fina
 
 - Entering complex investigation, infiltration, confrontation, retreat, or battle preparation: prefer `progress_scene_beat kind=begin`.
 - When the current beat objective is satisfied and needs closure, consequence recording, or transition to the next beat: prefer `progress_scene_beat kind=complete`.
-- In a complex beat, do not manually combine `set-story-window` with multiple `add-objective` operations; prefer `progress_scene_beat`.
-- Simple movement, short time advancement, or a single objective/threat change: use `update_scene`.
-- Low-risk transitions longer than 10 minutes: use `update_scene` to advance time.
-- Waiting, rest, sleep, watchkeeping, or overnight stay with no other state changes this turn: use `update_scene kind=advance-time`.
-- Waiting, rest, sleep, watchkeeping, or overnight stay with condition / servant / memory changes in the same turn: use `commit_turn`, including a scene `advance-time` event.
+- In a complex beat, use `progress_scene_beat`; its top-level `time` is mandatory.
+- Outside beat lifecycle, use `commit_turn`; its top-level `time` is mandatory.
+- Use `time.kind=none` for immediate reactions, brief dialogue, and actions that do not materially consume scene time.
+- Use `time.kind=elapsed` for waiting, rest, sleep, watchkeeping, treatment, investigation, or any non-travel time passage.
+- Use `time.kind=travel` when the player changes location through the fiction.
 
 ## Domain Event Tool routing
 
