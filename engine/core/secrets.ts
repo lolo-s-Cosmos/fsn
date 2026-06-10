@@ -11,31 +11,22 @@ import {
   updateState,
 } from "./state";
 
-export interface ServantSecretStringInput {
-  value: string;
-  revealConditions: string[];
-}
+import type {
+  ConfigureActorSecretsInput,
+  ConfigureServantSecretsInput,
+  RevealSecretEvent,
+  ServantSecretNoblePhantasmInput,
+  ServantSecretStringInput,
+} from "./secrets-schema";
 
-export interface ServantSecretNoblePhantasmInput {
-  value: NoblePhantasm;
-  revealConditions: string[];
-}
-
-export interface ConfigureServantSecretsInput {
-  kind: "configure-servant-secrets";
-  actorId: ActorId;
-  trueName?: ServantSecretStringInput;
-  hiddenNoblePhantasms?: ServantSecretNoblePhantasmInput[];
-  reason: string;
-}
-
-export interface ConfigureActorSecretsInput {
-  kind: "configure-actor-secrets";
-  actorId: ActorId;
-  privateMotives?: ServantSecretStringInput[];
-  unrevealedAffiliations?: ServantSecretStringInput[];
-  reason: string;
-}
+export type {
+  ConfigureActorSecretsInput,
+  ConfigureServantSecretsInput,
+  RevealSecretEvent,
+  RevealSecretToolInput,
+  ServantSecretNoblePhantasmInput,
+  ServantSecretStringInput,
+} from "./secrets-schema";
 
 export interface ConfigureServantSecretsResult {
   message: string;
@@ -44,10 +35,6 @@ export interface ConfigureServantSecretsResult {
 export interface ConfigureActorSecretsResult {
   message: string;
 }
-
-export type RevealSecretEvent =
-  | { kind: "claim-reveal"; actorId: ActorId; claim: string; evidence: string }
-  | { kind: "observed-reveal"; actorId: ActorId; trigger: string; evidence: string };
 
 export type RevealSecretOutcome =
   | "revealed"

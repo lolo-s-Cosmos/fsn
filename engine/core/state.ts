@@ -1,3 +1,4 @@
+import type { NoblePhantasm } from "./actor-schema";
 import type { OffscreenEvent } from "./parallel-line";
 import type {
   BoundaryKind,
@@ -5,11 +6,14 @@ import type {
   MemoryFactScope,
   OpeningMode,
   PurseAccess,
+  RevealStatus,
   RuleSetId,
   SituationKind,
   TimelineId,
   TimeZoneId,
 } from "./state-enum-schemas";
+
+export type { NoblePhantasm } from "./actor-schema";
 
 import { Temporal } from "@js-temporal/polyfill";
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -21,6 +25,7 @@ import {
   MEMORY_SCOPES,
   OPENING_MODES,
   PURSE_ACCESSES,
+  REVEAL_STATUSES as TRUE_NAME_STATUSES,
   RULE_SET_IDS,
   SITUATION_KINDS as SITUATIONS,
   TIMELINE_IDS as TIMELINES,
@@ -34,6 +39,7 @@ export type {
   MemoryFactScope,
   OpeningMode,
   PurseAccess,
+  RevealStatus,
   RuleSetId,
   SituationKind,
   TimelineId,
@@ -377,7 +383,7 @@ export interface ServantIdentityState {
 }
 
 export interface TrueNameState {
-  status: "hidden" | "suspected" | "revealed";
+  status: RevealStatus;
   display: string;
 }
 
@@ -433,13 +439,6 @@ export interface ServantSkill {
   summary: string;
 }
 
-export interface NoblePhantasm {
-  name: string;
-  rank: FateRank | "none";
-  kind: string;
-  status: "hidden" | "suspected" | "revealed";
-  summary: string;
-}
 
 export interface EconomyState {
   currency: CurrencyCode;
@@ -2056,7 +2055,6 @@ const SERVANT_CLASSES = [
   "Pretender",
   "Custom",
 ] as const;
-const TRUE_NAME_STATUSES = ["hidden", "suspected", "revealed"] as const;
 const CONTRACT_STATUSES = ["stable", "weak", "cut", "masterless"] as const;
 const MANA_SUPPLIES = ["sufficient", "strained", "starved"] as const;
 const FATE_PARAM_KEYS = [

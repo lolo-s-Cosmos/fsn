@@ -80,3 +80,7 @@ export type PurseAccess = Static<typeof PURSE_ACCESS_SCHEMA>;
 export const MEMORY_SCOPES = ["protagonist", "npc", "faction", "world"] as const;
 export const MEMORY_SCOPE_SCHEMA = stringEnumSchema(MEMORY_SCOPES);
 export type MemoryFactScope = Static<typeof MEMORY_SCOPE_SCHEMA>;
+
+export const REVEAL_STATUSES = ["hidden", "suspected", "revealed"] as const;
+export const REVEAL_STATUS_SCHEMA = stringEnumSchema(REVEAL_STATUSES);
+export type RevealStatus = Static<typeof REVEAL_STATUS_SCHEMA>;

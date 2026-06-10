@@ -1,8 +1,11 @@
 import type { Static } from "typebox";
 
+import type { FateRank } from "./state";
+
 import { Type } from "typebox";
 import { Compile } from "typebox/compile";
 
+import { REVEAL_STATUS_SCHEMA } from "./state-enum-schemas";
 import { parseTypeBoxValue, trimStringsDeep } from "./typebox-validation";
 
 /**
@@ -35,3 +38,19 @@ const RETIRE_ACTOR_INPUT_VALIDATOR = Compile(RETIRE_ACTOR_INPUT_SCHEMA);
 export function parseRetireActorInput(value: unknown, fieldName: string): RetireActorInput {
   return parseTypeBoxValue(trimStringsDeep(value), fieldName, RETIRE_ACTOR_INPUT_VALIDATOR);
 }
+
+/** Fate rank 文法与 engine/core/fate-rank.ts 保持一致。 */
+export const FATE_RANK_OR_NONE_SCHEMA = Type.Unsafe<FateRank | "none">({
+  type: "string",
+  pattern: "^(?:(?:E|D|C|B|A|EX)(?:\\+{1,3}|-)?|none)$",
+});
+
+export const NOBLE_PHANTASM_SCHEMA = Type.Object({
+  name: Type.String({ minLength: 1 }),
+  rank: FATE_RANK_OR_NONE_SCHEMA,
+  kind: Type.String({ minLength: 1 }),
+  status: REVEAL_STATUS_SCHEMA,
+  summary: Type.String({ minLength: 1 }),
+});
+
+export type NoblePhantasm = Static<typeof NOBLE_PHANTASM_SCHEMA>;

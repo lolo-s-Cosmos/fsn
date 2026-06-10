@@ -93,6 +93,8 @@ function formatTypeBoxValidationError(fieldName: string, error: TLocalizedValida
       return `${path} 类型必须是 ${formatExpectedType(error.params.type)}`;
     case "minLength":
       return `${path} 长度不能少于 ${error.params.limit}`;
+    case "pattern":
+      return `${path} 必须匹配格式 ${error.params.pattern}`;
     case "minimum":
     case "maximum":
     case "exclusiveMinimum":

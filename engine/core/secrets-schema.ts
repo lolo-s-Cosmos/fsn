@@ -1,0 +1,104 @@
+import type { Static } from "typebox";
+
+import { Type } from "typebox";
+import { Compile } from "typebox/compile";
+
+import type { TypeBoxValidator } from "./typebox-validation";
+
+import { NOBLE_PHANTASM_SCHEMA } from "./actor-schema";
+import { stringEnumSchema } from "./state-enum-schemas";
+import { parseTaggedTypeBoxUnion, trimStringsDeep } from "./typebox-validation";
+
+/**
+ * Secrets 领域（reveal_secret 工具）边界 schema：单一事实来源。
+ * 对应输入类型由此派生（secrets.ts re-export 原名）。
+ */
+export const SERVANT_SECRET_STRING_INPUT_SCHEMA = Type.Object({
+  value: Type.String({ minLength: 1 }),
+  revealConditions: Type.Array(Type.String({ minLength: 1 })),
+});
+export type ServantSecretStringInput = Static<typeof SERVANT_SECRET_STRING_INPUT_SCHEMA>;
+
+export const SERVANT_SECRET_NOBLE_PHANTASM_INPUT_SCHEMA = Type.Object({
+  value: NOBLE_PHANTASM_SCHEMA,
+  revealConditions: Type.Array(Type.String({ minLength: 1 })),
+});
+export type ServantSecretNoblePhantasmInput = Static<
+  typeof SERVANT_SECRET_NOBLE_PHANTASM_INPUT_SCHEMA
+>;
+
+export const REVEAL_SECRET_TOOL_KINDS = [
+  "configure-servant-secrets",
+  "configure-actor-secrets",
+  "claim-reveal",
+  "observed-reveal",
+] as const;
+const REVEAL_SECRET_TOOL_KIND_SCHEMA = stringEnumSchema(REVEAL_SECRET_TOOL_KINDS);
+
+export const CONFIGURE_SERVANT_SECRETS_SCHEMA = Type.Object({
+  kind: Type.Literal("configure-servant-secrets"),
+  actorId: Type.String({ minLength: 1 }),
+  trueName: Type.Optional(SERVANT_SECRET_STRING_INPUT_SCHEMA),
+  hiddenNoblePhantasms: Type.Optional(Type.Array(SERVANT_SECRET_NOBLE_PHANTASM_INPUT_SCHEMA)),
+  reason: Type.String({ minLength: 1 }),
+});
+export type ConfigureServantSecretsInput = Static<typeof CONFIGURE_SERVANT_SECRETS_SCHEMA>;
+
+export const CONFIGURE_ACTOR_SECRETS_SCHEMA = Type.Object({
+  kind: Type.Literal("configure-actor-secrets"),
+  actorId: Type.String({ minLength: 1 }),
+  privateMotives: Type.Optional(Type.Array(SERVANT_SECRET_STRING_INPUT_SCHEMA)),
+  unrevealedAffiliations: Type.Optional(Type.Array(SERVANT_SECRET_STRING_INPUT_SCHEMA)),
+  reason: Type.String({ minLength: 1 }),
+});
+export type ConfigureActorSecretsInput = Static<typeof CONFIGURE_ACTOR_SECRETS_SCHEMA>;
+
+export const CLAIM_REVEAL_SCHEMA = Type.Object({
+  kind: Type.Literal("claim-reveal"),
+  actorId: Type.String({ minLength: 1 }),
+  claim: Type.String({ minLength: 1 }),
+  evidence: Type.String({ minLength: 1 }),
+});
+
+export const OBSERVED_REVEAL_SCHEMA = Type.Object({
+  kind: Type.Literal("observed-reveal"),
+  actorId: Type.String({ minLength: 1 }),
+  trigger: Type.String({ minLength: 1 }),
+  evidence: Type.String({ minLength: 1 }),
+});
+
+export type RevealSecretEvent =
+  | Static<typeof CLAIM_REVEAL_SCHEMA>
+  | Static<typeof OBSERVED_REVEAL_SCHEMA>;
+
+export type RevealSecretToolInput =
+  | ConfigureServantSecretsInput
+  | ConfigureActorSecretsInput
+  | RevealSecretEvent;
+
+const REVEAL_SECRET_TOOL_KIND_VALIDATOR = Compile(REVEAL_SECRET_TOOL_KIND_SCHEMA);
+const CONFIGURE_SERVANT_SECRETS_VALIDATOR = Compile(CONFIGURE_SERVANT_SECRETS_SCHEMA);
+const CONFIGURE_ACTOR_SECRETS_VALIDATOR = Compile(CONFIGURE_ACTOR_SECRETS_SCHEMA);
+const CLAIM_REVEAL_VALIDATOR = Compile(CLAIM_REVEAL_SCHEMA);
+const OBSERVED_REVEAL_VALIDATOR = Compile(OBSERVED_REVEAL_SCHEMA);
+
+// Compile 必须在独立常量上调用（satisfies 上下文会干扰泛型推导）。
+const REVEAL_SECRET_TOOL_VARIANT_VALIDATORS = {
+  "configure-servant-secrets": CONFIGURE_SERVANT_SECRETS_VALIDATOR,
+  "configure-actor-secrets": CONFIGURE_ACTOR_SECRETS_VALIDATOR,
+  "claim-reveal": CLAIM_REVEAL_VALIDATOR,
+  "observed-reveal": OBSERVED_REVEAL_VALIDATOR,
+} satisfies Record<RevealSecretToolInput["kind"], TypeBoxValidator<RevealSecretToolInput>>;
+
+export function parseRevealSecretToolInput(
+  value: unknown,
+  fieldName: string,
+): RevealSecretToolInput {
+  return parseTaggedTypeBoxUnion<RevealSecretToolInput["kind"], RevealSecretToolInput>(
+    trimStringsDeep(value),
+    fieldName,
+    "kind",
+    REVEAL_SECRET_TOOL_KIND_VALIDATOR,
+    REVEAL_SECRET_TOOL_VARIANT_VALIDATORS,
+  );
+}
