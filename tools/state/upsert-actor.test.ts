@@ -84,7 +84,7 @@ void test("upsertActorTool reports invalid servant enums in domain language", ()
         },
         createNoopSessionManager(),
       ),
-    /非法 servant\.contractStatus: free。允许值: stable, weak, cut, masterless。/,
+    /servant\.contractStatus 必须是允许值之一: stable, weak, cut, masterless/,
   );
 });
 
@@ -106,7 +106,7 @@ void test("upsertActorTool reports invalid npc relationship stance in domain lan
         },
         createNoopSessionManager(),
       ),
-    /非法 npc\.relationshipToProtagonist\.stance: close。允许值: self, ally, friendly, neutral, wary, hostile, unknown。/,
+    /npc\.relationshipToProtagonist\.stance 必须是允许值之一: self, ally, friendly, neutral, wary, hostile, unknown/,
   );
 });
 

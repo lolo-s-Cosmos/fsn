@@ -1,18 +1,13 @@
-import type {
-  ActorId,
-  ActorKind,
-  ActorRole,
-  FateParams,
-  NoblePhantasm,
-  OutfitState,
-  PublicActorState,
-  PublicGameState,
-  RelationshipState,
-  ServantClass,
-  ServantSkill,
-} from "./state";
+import type { ActorId, PublicActorState, PublicGameState } from "./state";
 
-import type { RetireActorInput, ScenePresenceInput } from "./actor-schema";
+import type {
+  ActorRegistryInput,
+  PublicNpcInput,
+  PublicNpcSkeletonInput,
+  RetireActorInput,
+  ScenePresenceInput,
+  ServantInput,
+} from "./actor-schema";
 
 import { assertNonEmptyString, updateState } from "./state";
 
@@ -21,80 +16,12 @@ export interface UpsertActorInput {
   reason: string;
 }
 
-export interface PublicNpcInput {
-  id: ActorId;
-  kind: "human" | "outsider" | "spirit" | "other";
-  displayName: string;
-  publicIdentity: string;
-  apparentAge: string;
-  outfit: OutfitState;
-  demeanor: string;
-  publicRoles: ActorRole[];
-  relationshipToProtagonist: RelationshipState;
-  ordinaryItems: string[];
-}
-
-export interface PublicNpcSkeletonInput {
-  actorId: ActorId;
-  npcKind?: ActorKind;
-  displayName: string;
-  publicIdentity: string;
-  apparentAge?: string;
-  outfit?: OutfitState;
-  demeanor?: string;
-  publicRoles?: ActorRole[];
-  relationshipToProtagonist?: RelationshipState;
-  ordinaryItems?: string[];
-}
-
-export interface ServantInput {
-  id: ActorId;
-  displayName: string;
-  publicIdentity: string;
-  apparentAge: string;
-  outfit: OutfitState;
-  demeanor: string;
-  className: ServantClass;
-  trueNameDisplay: string;
-  trueNameStatus: "hidden" | "suspected" | "revealed";
-  parameters: FateParams;
-  classSkills: ServantSkill[];
-  personalSkills: ServantSkill[];
-  noblePhantasms: NoblePhantasm[];
-  spiritualCore: number;
-  mana: number;
-  spiritualCondition: string;
-  masterActorId: ActorId | null;
-  masterName: string | null;
-  contractStatus: "stable" | "weak" | "cut" | "masterless";
-  manaSupply: "sufficient" | "strained" | "starved";
-  currentOrder: string;
-  publicRoles?: ActorRole[];
-  relationshipToProtagonist?: RelationshipState;
-  ordinaryItems?: string[];
-}
-
-export type ActorRegistryInput =
-  | {
-      kind: "setup-protagonist";
-      actor: PublicActorState;
-      reason: string;
-    }
-  | {
-      kind: "upsert-public-npc";
-      npc: PublicNpcInput;
-      reason: string;
-    }
-  | {
-      kind: "ensure-public-npc";
-      npc: PublicNpcSkeletonInput;
-      reason: string;
-    }
-  | {
-      kind: "upsert-servant";
-      servant: ServantInput;
-      reason: string;
-    };
+export type {
+  ActorRegistryInput,
+  PublicNpcInput,
+  PublicNpcSkeletonInput,
+  ServantInput,
+} from "./actor-schema";
 
 export interface UpsertActorResult {
   message: string;

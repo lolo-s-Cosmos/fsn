@@ -101,6 +101,42 @@ export const MANA_SUPPLIES = ["sufficient", "strained", "starved"] as const;
 export const MANA_SUPPLY_SCHEMA = stringEnumSchema(MANA_SUPPLIES);
 export type ManaSupply = Static<typeof MANA_SUPPLY_SCHEMA>;
 
+export const ACTOR_KINDS = ["human", "outsider", "spirit", "other"] as const;
+export const ACTOR_KIND_SCHEMA = stringEnumSchema(ACTOR_KINDS);
+export type ActorKind = Static<typeof ACTOR_KIND_SCHEMA>;
+
+export const ACTOR_STANCES = [
+  "self",
+  "ally",
+  "friendly",
+  "neutral",
+  "wary",
+  "hostile",
+  "unknown",
+] as const;
+export const ACTOR_STANCE_SCHEMA = stringEnumSchema(ACTOR_STANCES);
+export type ActorStance = Static<typeof ACTOR_STANCE_SCHEMA>;
+
+export const SERVANT_CLASSES = [
+  "Saber",
+  "Archer",
+  "Lancer",
+  "Rider",
+  "Caster",
+  "Assassin",
+  "Berserker",
+  "Avenger",
+  "Ruler",
+  "AlterEgo",
+  "Foreigner",
+  "Shielder",
+  "MoonCancer",
+  "Pretender",
+  "Custom",
+] as const;
+export const SERVANT_CLASS_SCHEMA = stringEnumSchema(SERVANT_CLASSES);
+export type ServantClass = Static<typeof SERVANT_CLASS_SCHEMA>;
+
 export const WOUND_SEVERITIES = ["minor", "moderate", "severe", "critical"] as const;
 export const WOUND_SEVERITY_SCHEMA = stringEnumSchema(WOUND_SEVERITIES);
 export type WoundSeverity = Static<typeof WOUND_SEVERITY_SCHEMA>;

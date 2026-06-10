@@ -1,6 +1,8 @@
 import type { NoblePhantasm } from "./actor-schema";
 import type { OffscreenEvent } from "./parallel-line";
 import type {
+  ActorKind,
+  ActorStance,
   BoundaryKind,
   CircuitStatus,
   ContractStatus,
@@ -12,6 +14,7 @@ import type {
   RevealStatus,
   RuleSetId,
   SceneThreatSeverity,
+  ServantClass,
   SituationKind,
   TimelineId,
   TimeZoneId,
@@ -28,8 +31,11 @@ import { mkdirSync, writeFileSync } from "node:fs";
 
 import { formatHumanTime, normalizeIsoInstant, nowIso } from "./date-time";
 import {
+  ACTOR_KINDS,
+  ACTOR_STANCES as STANCES,
   BOUNDARY_KINDS as BOUNDARIES,
   CONTRACT_STATUSES,
+  SERVANT_CLASSES,
   CURRENCY_CODES as CURRENCIES,
   FATE_PARAM_KEYS,
   MANA_SUPPLIES,
@@ -53,6 +59,8 @@ import {
 import { parseTurnTimePolicySchema } from "./turn-time-schema";
 
 export type {
+  ActorKind,
+  ActorStance,
   BoundaryKind,
   CircuitStatus,
   ContractStatus,
@@ -64,6 +72,7 @@ export type {
   RevealStatus,
   RuleSetId,
   SceneThreatSeverity,
+  ServantClass,
   SituationKind,
   TimelineId,
   TimeZoneId,
@@ -93,8 +102,6 @@ export type MemoryFactId = string;
 export type MajorEventMemoryId = string;
 export type DailySummaryMemoryId = string;
 export type SceneObjectiveStatus = "active" | "blocked" | "resolved";
-export type ActorKind = "human" | "outsider" | "spirit" | "other";
-export type ActorStance = "self" | "ally" | "friendly" | "neutral" | "wary" | "hostile" | "unknown";
 export type FateRankBase = "E" | "D" | "C" | "B" | "A" | "EX";
 export type FateRank =
   | FateRankBase
@@ -103,22 +110,6 @@ export type FateRank =
   | `${FateRankBase}+++`
   | `${FateRankBase}-`;
 export type Percent = number;
-export type ServantClass =
-  | "Saber"
-  | "Archer"
-  | "Lancer"
-  | "Rider"
-  | "Caster"
-  | "Assassin"
-  | "Berserker"
-  | "Avenger"
-  | "Ruler"
-  | "AlterEgo"
-  | "Foreigner"
-  | "Shielder"
-  | "MoonCancer"
-  | "Pretender"
-  | "Custom";
 
 export interface GameState {
   meta: StateMeta;
@@ -2022,9 +2013,7 @@ export function advanceClock(minutes: number, reason: string): State {
 }
 
 const OBJECTIVE_STATUSES = ["active", "blocked", "resolved"] as const;
-const ACTOR_KINDS = ["human", "outsider", "spirit", "other"] as const;
 const ROLE_KINDS = ["master", "social", "faction"] as const;
-const STANCES = ["self", "ally", "friendly", "neutral", "wary", "hostile", "unknown"] as const;
 const FATE_RANKS = [
   "E",
   "E+",
@@ -2058,21 +2047,5 @@ const FATE_RANKS = [
   "EX-",
 ] as const;
 
-const SERVANT_CLASSES = [
-  "Saber",
-  "Archer",
-  "Lancer",
-  "Rider",
-  "Caster",
-  "Assassin",
-  "Berserker",
-  "Avenger",
-  "Ruler",
-  "AlterEgo",
-  "Foreigner",
-  "Shielder",
-  "MoonCancer",
-  "Pretender",
-  "Custom",
-] as const;
+
 const SECRET_REVEAL_STATES = ["hidden", "foreshadowed", "revealed"] as const;
