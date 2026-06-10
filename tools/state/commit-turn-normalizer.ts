@@ -1,10 +1,11 @@
 import type { ScenePresenceInput } from "../../engine/core/actor";
-import type { EconomyEvent } from "../../engine/core/economy";
 import type { MemoryEvent } from "../../engine/core/memory";
 import type { SceneEvent } from "../../engine/core/scene";
-import type { ServantFormEvent } from "../../engine/core/servant";
 import type { TurnCommitEvent, TurnCommitInput } from "../../engine/core/turn-commit";
 
+import { parseEconomyEvent } from "../../engine/core/economy-schema";
+import { parseMemoryEvent } from "../../engine/core/memory-schema";
+import { parseServantFormEvent } from "../../engine/core/servant-schema";
 import { parseTurnTimePolicySchema } from "../../engine/core/turn-time-schema";
 
 import { normalizeActorConditionEvent } from "./actor-condition-normalizer";
@@ -66,15 +67,17 @@ function normalizeTurnCommitEvent(value: unknown, summary: string): TurnCommitEv
     case "servant-form":
       return {
         kind: normalizedKind,
-        event: trustDomainEvent<ServantFormEvent>(
+        event: parseServantFormEvent(
           withReason(extractDomainEvent(event, "servant-form.event"), summary),
+          "commit_turn servant-form.event",
         ),
       };
     case "economy":
       return {
         kind: normalizedKind,
-        event: trustDomainEvent<EconomyEvent>(
+        event: parseEconomyEvent(
           withReason(extractDomainEvent(event, "economy.event"), summary),
+          "commit_turn economy.event",
         ),
       };
     case "memory":
@@ -113,7 +116,12 @@ function extractDomainEvent(event: Record<string, unknown>, fieldName: string): 
 }
 
 function normalizeMemoryTurnEvent(event: Record<string, unknown>): MemoryEvent {
-  return extractDomainEvent(event, "memory.event") as unknown as MemoryEvent;
+  const payload = extractDomainEvent(event, "memory.event");
+  const normalized =
+    payload["kind"] === "pin-fact"
+      ? { ...payload, sourceEventId: payload["sourceEventId"] ?? null }
+      : payload;
+  return parseMemoryEvent(normalized, "commit_turn memory.event");
 }
 
 function normalizeSceneTurnEvent(
@@ -231,10 +239,6 @@ function assertNonEmptyString(value: unknown, fieldName: string): string {
     throw new Error(`非法${fieldName}: ${formatUnknown(value)}。必须是字符串。`);
   }
   return value.trim();
-}
-
-function trustDomainEvent<T>(event: Record<string, unknown>): T {
-  return event as unknown as T; // safe: tool adapter only normalizes common LLM omissions; owning engine module validates the domain event.
 }
 
 function normalizeOptionalString(value: unknown): string | null {
