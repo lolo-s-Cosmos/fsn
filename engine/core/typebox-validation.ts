@@ -30,6 +30,26 @@ export function parseTypeBoxValue<T>(
   throw new Error(formatTypeBoxValidationErrors(fieldName, validator.Errors(converted)));
 }
 
+/**
+ * 递归 trim 所有字符串值，返回新结构（不改原值）。
+ * 在 parseTypeBoxValue 之前调用，保持旧手写 assertString 的 trim 语义：
+ * 纯空白字符串 trim 后会被 minLength: 1 拒绝。
+ */
+export function trimStringsDeep(value: unknown): unknown {
+  if (typeof value === "string") {
+    return value.trim();
+  }
+  if (Array.isArray(value)) {
+    return value.map(trimStringsDeep);
+  }
+  if (isRecord(value)) {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, entry]) => [key, trimStringsDeep(entry)]),
+    );
+  }
+  return value;
+}
+
 function assertRecordForValidation(value: unknown, fieldName: string): Record<string, unknown> {
   if (!isRecord(value)) {
     throw new Error(`${fieldName} 必须是对象。`);

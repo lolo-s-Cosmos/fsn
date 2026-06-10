@@ -40,6 +40,53 @@ void test("configureCampaignTool normalizes Moon Cell currency aliases", () => {
   assert.equal(exportState().public.economy.currency, "custom");
 });
 
+void test("configureCampaignTool rejects unknown timeline with allowed values in Chinese", () => {
+  resetState();
+
+  assert.throws(
+    () =>
+      configureCampaignTool(
+        { presetId: "fsn_2004_fuyuki", timeline: "fgo", reason: "测试非法时间线。" },
+        createNoopSessionManager(),
+      ),
+    (error: unknown) => {
+      const message = String(error);
+      return (
+        message.includes("timeline") &&
+        message.includes("必须是允许值之一") &&
+        message.includes("fsf")
+      );
+    },
+  );
+});
+
+void test("configureCampaignTool rejects missing reason with required-field error", () => {
+  resetState();
+
+  assert.throws(
+    () => configureCampaignTool({ presetId: "fsn_2004_fuyuki" }, createNoopSessionManager()),
+    (error: unknown) => String(error).includes("缺少必填字段") && String(error).includes("reason"),
+  );
+});
+
+void test("configureCampaignTool converts numeric strings and trims whitespace input", () => {
+  resetState();
+
+  configureCampaignTool(
+    {
+      presetId: "fsn_2004_fuyuki",
+      startingFunds: "80000",
+      currency: "  PPT  ",
+      reason: "  测试 Convert coercion 与 trim。  ",
+    },
+    createNoopSessionManager(),
+  );
+
+  const state = exportState();
+  assert.equal(state.public.economy.accessibleFunds[0]?.amount, 80000);
+  assert.equal(state.public.economy.currency, "custom");
+});
+
 function createNoopSessionManager(): unknown {
   return { appendCustomEntry: () => "entry-test" };
 }

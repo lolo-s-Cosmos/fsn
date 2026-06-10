@@ -1,34 +1,10 @@
-import type {
-  CurrencyCode,
-  LocationState,
-  OpeningMode,
-  RuleSetId,
-  SituationKind,
-  TimelineId,
-  TimeZoneId,
-} from "./state";
+import type { ConfigureCampaignInput } from "./campaign-schema";
 
 import { getCampaignPreset } from "../../data/campaign-presets";
 import { normalizeIsoInstant } from "./date-time";
 import { assertNonEmptyString, createId, updateState } from "./state";
 
-export interface ConfigureCampaignInput {
-  presetId: string;
-  title?: string;
-  timeline?: TimelineId;
-  openingMode?: OpeningMode;
-  premise?: string;
-  activeRuleSetIds?: RuleSetId[];
-  timezone?: TimeZoneId;
-  startedAt?: string;
-  currentAt?: string;
-  location?: LocationState;
-  situation?: SituationKind;
-  currency?: CurrencyCode;
-  startingFunds?: number;
-  purseLabel?: string;
-  reason: string;
-}
+export type { ConfigureCampaignInput } from "./campaign-schema";
 
 export interface ConfigureCampaignResult {
   message: string;
