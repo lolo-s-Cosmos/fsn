@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { resetState, sessionKey } from "../../engine/core/state";
+import { getState, resetState, sessionKey } from "../../engine/core/state";
 import { initializeNewGameTool } from "./initialize-new-game";
 
 void test("initializeNewGameTool initializes human protagonist and persists details", () => {
@@ -91,32 +91,33 @@ void test("initializeNewGameTool rejects public revealed servant protagonist tru
   );
 });
 
-void test("initializeNewGameTool rejects malformed hidden true name", () => {
+void test("initializeNewGameTool coerces scalar reveal conditions into an array", () => {
   resetState();
 
-  assert.throws(
-    () =>
-      initializeNewGameTool(
-        {
-          kind: "servant-protagonist",
-          campaign: { presetId: "fsf_2008_snowfield" },
-          protagonist: {
-            displayName: "Saber",
-            publicIdentity: "刚现界且真名未公开的 Saber",
-            apparentAge: "青年",
-            outfit: { label: "战斗礼装", details: "灵基投影出的轻甲。" },
-            demeanor: "警戒而克制。",
-            className: "Saber",
-            trueNameDisplay: "Saber",
-            trueNameStatus: "hidden",
-          },
-          hiddenTrueName: { value: "隐藏真名", revealConditions: "剧情内证据" },
-          reason: "tool-level 测试 malformed hiddenTrueName",
-        },
-        createMockSessionManager(),
-      ),
-    /hiddenTrueName\.revealConditions/,
+  initializeNewGameTool(
+    {
+      kind: "servant-protagonist",
+      campaign: { presetId: "fsf_2008_snowfield" },
+      protagonist: {
+        displayName: "Saber",
+        publicIdentity: "刚现界且真名未公开的 Saber",
+        apparentAge: "青年",
+        outfit: { label: "战斗礼装", details: "灵基投影出的轻甲。" },
+        demeanor: "警戒而克制。",
+        className: "Saber",
+        trueNameDisplay: "Saber",
+        trueNameStatus: "hidden",
+      },
+      // TypeBox Convert 的系统性宽容：标量字符串自动包装为单元素数组。
+      hiddenTrueName: { value: "隐藏真名", revealConditions: "剧情内证据" },
+      reason: "tool-level 测试标量 revealConditions coercion",
+    },
+    createMockSessionManager(),
   );
+
+  const trueName = getState().secrets.actorSecrets["protagonist"]?.trueName;
+  assert.equal(trueName?.value, "隐藏真名");
+  assert.deepEqual(trueName?.revealConditions, ["剧情内证据"]);
 });
 
 interface MockSessionManager {
