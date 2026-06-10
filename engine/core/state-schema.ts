@@ -42,7 +42,7 @@ import {
   WOUND_SEVERITY_SCHEMA,
 } from "./state-enum-schemas";
 import { LOCATION_STATE_SCHEMA } from "./turn-time-schema";
-import { parseTypeBoxValue, trimStringsDeep } from "./typebox-validation";
+import { isRecord, parseTypeBoxValue, trimStringsDeep } from "./typebox-validation";
 
 /**
  * State 反序列化边界 schema：与 state.ts 的手写接口一一对应。
@@ -601,8 +601,4 @@ function assertActorExists(
   if (actors[actorId] === undefined) {
     throw new Error(`非法${fieldName}: actor ${actorId} 不存在。`);
   }
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

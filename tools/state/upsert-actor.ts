@@ -6,6 +6,7 @@ import { parseActorRegistryInput } from "../../engine/core/actor-schema";
 import { ACTOR_KINDS } from "../../engine/core/state-enum-schemas";
 
 import { resultDetails, runDomainEventTool } from "./domain-tool-runner";
+import { isRecord } from "../../engine/core/typebox-validation";
 
 /**
  * upsert_actor 边界：结构校验交给 actor-schema；这里只保留领域归一化——
@@ -188,8 +189,4 @@ function assertActorKind(value: unknown, fieldName: string): void {
   if (typeof value !== "string" || !ACTOR_KINDS.some((kind) => kind === value)) {
     throw new Error(`非法 ${fieldName}: ${String(value)}。允许值: ${ACTOR_KINDS.join(", ")}。`);
   }
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

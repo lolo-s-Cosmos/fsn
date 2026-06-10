@@ -5,6 +5,7 @@ import { recordMemory } from "../../engine/core/memory";
 import { parseMemoryEvent } from "../../engine/core/memory-schema";
 
 import { runDomainEventTool } from "./domain-tool-runner";
+import { isRecord } from "../../engine/core/typebox-validation";
 
 export function recordMemoryTool(params: unknown, sessionManager: unknown): ToolResult {
   return runDomainEventTool({
@@ -37,8 +38,4 @@ function normalizeSourceEventId(params: unknown): unknown {
   const raw = params["sourceEventId"];
   const sourceEventId = typeof raw === "string" && raw.trim().length > 0 ? raw : null;
   return { ...params, sourceEventId };
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

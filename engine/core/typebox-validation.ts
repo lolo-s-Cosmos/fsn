@@ -59,7 +59,8 @@ function assertRecordForValidation(value: unknown, fieldName: string): Record<st
   return value;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+/** 共享的 record 类型守卫：全仓唯一定义，不要再复制粘贴。 */
+export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 

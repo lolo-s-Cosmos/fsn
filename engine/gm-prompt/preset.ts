@@ -1,6 +1,8 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
+import { isRecord } from "../core/typebox-validation";
+
 export type PromptSlot = "pre-history" | "pre-response" | "final-contract";
 export type RuntimePromptSource = "state-brief";
 
@@ -173,8 +175,4 @@ function isPromptSlot(value: string): value is PromptSlot {
 
 function isRuntimePromptSource(value: string): value is RuntimePromptSource {
   return RUNTIME_SOURCES.includes(value);
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

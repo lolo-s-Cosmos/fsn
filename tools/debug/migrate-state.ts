@@ -1,4 +1,5 @@
 import { cloneState, migrateState, replaceStateForDebug } from "../../engine/core/state";
+import { isRecord } from "../../engine/core/typebox-validation";
 import { textResult, type ToolResult } from "../runtime/tool-result";
 
 interface MigrateStateParams {
@@ -49,8 +50,4 @@ function assertString(value: unknown, fieldName: string): string {
     throw new Error(`${fieldName} 必须是非空字符串。`);
   }
   return value.trim();
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

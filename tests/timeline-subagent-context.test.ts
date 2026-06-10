@@ -3,6 +3,7 @@ import test from "node:test";
 
 import { configureCampaign } from "../engine/core/campaign";
 import { getState, resetState } from "../engine/core/state";
+import { isRecord } from "../engine/core/typebox-validation";
 import { buildTimelineStateContext } from "../extensions/subagents/timeline/index";
 
 void test("timeline subagent context renders campaign timezone local time", () => {
@@ -30,7 +31,3 @@ void test("timeline subagent context renders campaign timezone local time", () =
   );
   assert.match(context.timeRangeRule, /不得把本地时钟直接加 Z 输出/);
 });
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}

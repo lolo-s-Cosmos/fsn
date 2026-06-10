@@ -3,6 +3,7 @@ import test from "node:test";
 
 import { getState, resetState } from "./state";
 import { parseStateSchema } from "./state-schema";
+import { isRecord } from "./typebox-validation";
 
 void test("parseStateSchema round-trips a freshly initialized state", () => {
   resetState();
@@ -106,8 +107,4 @@ function section(record: Record<string, unknown>, key: string): Record<string, u
     throw new Error(`unreachable: ${key} 必须是对象`);
   }
   return value;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

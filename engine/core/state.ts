@@ -65,6 +65,7 @@ export type {
   ParallelLineOutcome,
   ParallelLineTimeWindow,
 } from "./parallel-line";
+import { isRecord } from "./typebox-validation";
 
 export type ActorId = string;
 export type ItemId = string;
@@ -981,10 +982,6 @@ function assertInteger(value: unknown, fieldName: string): number {
     return Number(value.trim());
   }
   throw new Error(`非法${fieldName}: ${formatUnknown(value)}。必须是整数。`);
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function formatUnknown(value: unknown): string {

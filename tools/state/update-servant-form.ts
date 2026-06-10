@@ -8,6 +8,7 @@ import {
 } from "../../engine/core/servant-schema";
 
 import { resultDetails, runDomainEventTool } from "./domain-tool-runner";
+import { isRecord } from "../../engine/core/typebox-validation";
 
 /** 锁定字段的 kind 有专属指引（指向 override_locked_fact），必须先于 schema 枚举报错。 */
 const LOCKED_FIELD_KINDS = [
@@ -64,8 +65,4 @@ function normalizeNullableFields(params: unknown): unknown {
     };
   }
   return next;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

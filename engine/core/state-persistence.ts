@@ -1,4 +1,5 @@
 import { getState, sessionKey, toSessionEntry } from "./state";
+import { isRecord } from "./typebox-validation";
 
 export function persistCurrentState(sessionManager: unknown): void {
   const writer = asStateSessionWriter(sessionManager);
@@ -29,8 +30,4 @@ function asStateSessionWriter(value: unknown): StateSessionWriter | undefined {
       return result;
     },
   };
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

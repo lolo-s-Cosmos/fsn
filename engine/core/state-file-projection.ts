@@ -1,6 +1,7 @@
 import type { TimeZoneId } from "./state";
 
 import { formatHumanTime } from "./date-time";
+import { isRecord } from "./typebox-validation";
 
 export interface TimelineStateContext {
   currentAt: string;
@@ -299,8 +300,4 @@ function stringArray(value: unknown, fieldName: string): string[] {
 
 function optionalArray(value: unknown): unknown[] {
   return Array.isArray(value) ? value : [];
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

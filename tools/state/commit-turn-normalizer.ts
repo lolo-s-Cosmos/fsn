@@ -9,6 +9,7 @@ import { parseServantFormEvent } from "../../engine/core/servant-schema";
 import { parseTurnTimePolicySchema } from "../../engine/core/turn-time-schema";
 
 import { normalizeActorConditionEvent } from "./actor-condition-normalizer";
+import { isRecord } from "../../engine/core/typebox-validation";
 
 const DEFAULT_SUMMARY = "本轮状态变化。";
 const TURN_EVENT_KINDS = [
@@ -251,8 +252,4 @@ function assertRecord(value: unknown, fieldName: string): Record<string, unknown
 
 function formatUnknown(value: unknown): string {
   return value === undefined ? "undefined" : JSON.stringify(value);
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

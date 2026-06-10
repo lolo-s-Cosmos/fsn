@@ -1,6 +1,7 @@
 import type { ActorConditionEvent } from "../../engine/core/actor-condition";
 
 import { parseActorConditionEvent } from "../../engine/core/actor-condition-schema";
+import { isRecord } from "../../engine/core/typebox-validation";
 
 /**
  * update_actor_condition / commit_turn 子事件的领域归一化层。
@@ -91,8 +92,4 @@ function assertRecord(value: unknown, fieldName: string): Record<string, unknown
     throw new Error(`${fieldName} 必须是对象。`);
   }
   return value;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

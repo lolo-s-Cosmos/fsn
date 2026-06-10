@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 
 import { buildGmBrief } from "../core/gm-brief";
 import { getPublicState } from "../core/state";
+import { isRecord } from "../core/typebox-validation";
 import {
   loadPromptPreset,
   type PromptPreset,
@@ -141,8 +142,4 @@ function isMessageWithRole(message: unknown, role: string): boolean {
     return false;
   }
   return message["role"] === role;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
