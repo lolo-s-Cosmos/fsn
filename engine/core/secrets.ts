@@ -387,27 +387,27 @@ function hiddenReaction(
 ): PrivateResolveResult {
   assertNonEmptyString(event.stimulus, "stimulus");
   assertNonEmptyString(event.publicContext, "publicContext");
-  let hasRelevantSecret = false;
-  updateState((draft) => {
-    if (draft.public.actors[event.actorId] === undefined) {
-      throw new Error(`actor 不存在: ${event.actorId}`);
-    }
-    const slots = draft.secrets.actorSecrets[event.actorId];
-    hasRelevantSecret =
-      slots !== undefined && secretText(slots).includes(event.stimulus.toLowerCase());
-    if (hasRelevantSecret) {
-      recordOffscreenEvent({
-        lineId: "private-resolve",
-        actorIds: [event.actorId],
-        timeRange: { start: draft.public.clock.currentAt, end: draft.public.clock.currentAt },
-        visibility: "secret",
-        summary: `隐藏反应触发：${event.publicContext}`,
-        consequences: [],
-        futureHooks: [],
-        createdFrom: "gm",
-      });
-    }
-  });
+  const state = getState();
+  if (state.public.actors[event.actorId] === undefined) {
+    throw new Error(`actor 不存在: ${event.actorId}`);
+  }
+  const slots = state.secrets.actorSecrets[event.actorId];
+  const hasRelevantSecret =
+    slots !== undefined && secretText(slots).includes(event.stimulus.toLowerCase());
+  if (hasRelevantSecret) {
+    // 注意：不能在 updateState mutator 内调 recordOffscreenEvent——
+    // 内层嵌套 updateState 的写入会被外层 setStore 用旧克隆覆盖丢失。
+    recordOffscreenEvent({
+      lineId: "private-resolve",
+      actorIds: [event.actorId],
+      timeRange: { start: state.public.clock.currentAt, end: state.public.clock.currentAt },
+      visibility: "secret",
+      summary: `隐藏反应触发：${event.publicContext}`,
+      consequences: [],
+      futureHooks: [],
+      createdFrom: "gm",
+    });
+  }
   return {
     outcome: hasRelevantSecret ? "subtle-reaction" : "no-special-effect",
     narrativeConstraints: hasRelevantSecret
@@ -420,18 +420,16 @@ function secretCompatibility(
   event: Extract<PrivateResolveEvent, { kind: "secret-compatibility" }>,
 ): PrivateResolveResult {
   assertNonEmptyString(event.interaction, "interaction");
-  let bothHaveSecrets = false;
-  updateState((draft) => {
-    if (draft.public.actors[event.actorId] === undefined) {
-      throw new Error(`actor 不存在: ${event.actorId}`);
-    }
-    if (draft.public.actors[event.targetActorId] === undefined) {
-      throw new Error(`target actor 不存在: ${event.targetActorId}`);
-    }
-    bothHaveSecrets =
-      draft.secrets.actorSecrets[event.actorId] !== undefined &&
-      draft.secrets.actorSecrets[event.targetActorId] !== undefined;
-  });
+  const state = getState();
+  if (state.public.actors[event.actorId] === undefined) {
+    throw new Error(`actor 不存在: ${event.actorId}`);
+  }
+  if (state.public.actors[event.targetActorId] === undefined) {
+    throw new Error(`target actor 不存在: ${event.targetActorId}`);
+  }
+  const bothHaveSecrets =
+    state.secrets.actorSecrets[event.actorId] !== undefined &&
+    state.secrets.actorSecrets[event.targetActorId] !== undefined;
   return {
     outcome: bothHaveSecrets ? "strong-reaction" : "no-special-effect",
     narrativeConstraints: bothHaveSecrets
