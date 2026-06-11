@@ -184,6 +184,7 @@ pre-response 槽里 `mechanical_state`（每轮变，priority 10）排在 tool-p
 ## 12. 结算/渲染双 pass 分离（工具调用与叙事完全隔离）
 
 - [ ] 状态：未开始（大型架构项，先做 spike 验证接缝质量）
+- [x] pi 架构可行性已验证（2026-06-11，对照 pi 0.79.1 extensions.md 全文 + 官方 examples）
 
 动机：现在单个 GM 上下文同时承载 23 个工具 schema、机械规则、style 黑名单和散文史，两种任务抢同一份注意力预算；散文史里混着工具调用噪音；secret 隔离依赖 prompt 自觉。
 
@@ -234,14 +235,37 @@ interface DirectionPacket {
 - 持久化与回退：packet 进 tool details / 隐藏 entry，正文为 assistant 消息；/fuck 剪枝两者一起删；两个 history 投影在 context 事件里按 phase 过滤同一棵 session tree
 - OOC/meta 轮：needsRender=false 直接回复
 
+pi 架构可行性验证结论（pi 0.79.1）：
+
+| 设计需求 | pi 原语 | 先例 |
+| --- | --- | --- |
+| 结算器 per-call history 投影 | `context` 事件返回过滤 messages | 本项目 injection.ts 已在用 |
+| 每轮替换 system prompt | `before_agent_start` 返回 `systemPrompt` | examples/pirate.ts |
+| 扩展内第二 LLM pass | `complete()`/`stream()` + `modelRegistry.getApiKeyAndHeaders` | 本项目 compaction 扩展同模式 |
+| 结算器不出正文收尾 | 工具返回 `terminate: true` 直接停在工具调用 | examples/structured-output.ts |
+| prose 落 session + markdown 显示 | `sendMessage({customType, display:true})` + `registerMessageRenderer` | examples/message-renderer.ts |
+| packet 持久化但不进 LLM 上下文 | `appendEntry()`（文档明示 not in LLM context） | extensions.md |
+| 渲染 pass 去工具 schema | `setActiveTools([])` / 手工装配 history | examples/plan-mode |
+| 替换最终 assistant 消息（备选接线） | `message_end` 返回替换消息（同 role） | extensions.md |
+| pass 期间等待 UX | `setWorkingMessage`/`setStatus`/`setWidget` | 多个 examples |
+| /fuck 兼容 | custom message 是普通 entry，prune 一起删 | 现有 rewind |
+
+接线方案：
+
+- 方案 A（推荐）：结算器当主 agent loop（保留原生工具 UI/steering/Esc/tool_call 钩子）；最后必须调 `submit_direction_packet` 工具（TypeBox 验收 + `terminate:true`，避免 JSON assistant 正文且省一次收尾 LLM 调用）；`agent_end` 里 packet 过防火墙 → `complete()` 渲染（history 在扩展内用 `serializeConversation`/`convertToLlm` 手工装配：玩家输入 + 历届 prose custom message）→ `sendMessage` 落 prose；`context` 事件把 prose 从结算器视野过滤。
+- 方案 B：渲染器当主 loop（prose 保留原生 token 流式），`before_agent_start` 里用 `complete()` 手工 roll 结算循环（领域工具是自家纯函数，可直接执行）；代价是结算器失去原生工具行渲染与中断语义。
+
+唯一真实 gap：方案 A 的 prose 是 `complete()` 一次性返回，pi 没有增量更新 custom message 的 API。缓解：pi-ai 的 `stream()` 流进 `setWidget` 伪流式、结束后落正式消息；或接受一次性出正文（渲染器上下文小，延迟低）。UX 取舍，非能力缺口。
+
 实施路线：
 
 1. Spike：手动取 2-3 个历史轮，离线构造 packet 喂渲染器 prompt，对比单 pass 散文质量——先验证接缝不丢质感再动架构
-2. packet schema + TypeBox 验证 + secret 扫描（复用 #1 规则模块）
-3. 渲染扩展：turn_end 拦截结算器输出 → complete() 渲染 → 替换/追加玩家可见消息
-4. context 事件双投影：按 phase 过滤 history（结算器去散文、渲染器去工具噪音）
+2. packet schema + TypeBox 验证 + secret 扫描（复用 #1 规则模块）；`submit_direction_packet` 工具 + `terminate:true`
+3. 渲染扩展：`agent_end` 拦截 → `complete()` 渲染 → `sendMessage` 落 prose + `registerMessageRenderer` markdown 显示
+4. `context` 事件双投影：结算器去 prose custom message；渲染器 history 在扩展内手工装配
 5. preset.json 模块按 pass 重新分组（吸收 #11）
 6. 跑通后把 #1 的 lint 移到 packet + 渲染输出两道关卡
+7. 可选：`stream()` + `setWidget` 伪流式显示渲染中的 prose
 
 ---
 
