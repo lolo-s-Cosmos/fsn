@@ -22,11 +22,10 @@ Before replying, compress the turn in this order:
 
 ## Mystery hook budget
 
-- Every mystery hook must be active / parked / paid / escalated / retired.
-- When the player explicitly ignores, parks, or bypasses a hook, mark it parked.
-- A parked hook should not grab focus for 1-2 turns. If it returns, it must bring new information, a clear consequence, upgraded action pressure, an actionable window, or retirement.
-- At most 1-2 mystery hooks may be active in the same scene. Other hooks must be parked or retired.
-- Mystery hooks cannot maintain presence through repeated description. Every reappearance must change information or state.
+- The hook ledger lives in state, managed through the `update_hook` tool. Every mystery hook that appears in prose must be registered (`open`) and transitioned there; the active budget and novelty requirements are enforced by the engine, not by your memory.
+- When the player explicitly ignores, parks, or bypasses a hook, mark it parked (`update_hook` kind=park).
+- A parked hook should not grab focus for 1-2 turns. If it returns, surface it with the novelty it brings: new information, a clear consequence, upgraded action pressure, an actionable window, or retirement.
+- Mystery hooks cannot maintain presence through repeated description. Every reappearance goes through `surface`/`escalate` with a concrete novelty; "the atmosphere thickens" does not qualify.
 - Repeating a line is not automatically wrong. The failure mode is repeating the same line with no new state, payoff, or action window, using only the same mood pressure.
 - When the player chooses comfort, relationship building, rule explanation, treatment, food, or rest, unhandled mystery hooks default to lower volume and should not repeatedly become ending pressure anchors.
 

@@ -202,6 +202,7 @@ export function createInitialState(): State {
       },
       turnLog: [],
       obligations: [],
+      hooks: [],
     },
     secrets: {
       actorSecrets: {},
@@ -274,6 +275,8 @@ function migrateOneSchemaVersion(
       return migrateGameStateV3ToV4(raw);
     case 4:
       return migrateGameStateV4ToV5(raw);
+    case 5:
+      return migrateGameStateV5ToV6(raw);
     default:
       throw new Error(
         `不支持的 state schemaVersion: ${version}。当前支持逐步迁移到 ${CURRENT_STATE_SCHEMA_VERSION}。`,
@@ -317,10 +320,19 @@ function migrateGameStateV3ToV4(raw: Record<string, unknown>): Record<string, un
 function migrateGameStateV4ToV5(raw: Record<string, unknown>): Record<string, unknown> {
   const next = structuredClone(raw);
   const meta = assertRecordForMigration(next["meta"], "meta");
-  meta["schemaVersion"] = CURRENT_STATE_SCHEMA_VERSION;
+  meta["schemaVersion"] = 5;
   const secrets = assertRecordForMigration(next["secrets"], "secrets");
   secrets["factionClocks"] = [];
   secrets["scheduledEvents"] = [];
+  return next;
+}
+
+function migrateGameStateV5ToV6(raw: Record<string, unknown>): Record<string, unknown> {
+  const next = structuredClone(raw);
+  const meta = assertRecordForMigration(next["meta"], "meta");
+  meta["schemaVersion"] = CURRENT_STATE_SCHEMA_VERSION;
+  const publicState = assertRecordForMigration(next["public"], "public");
+  publicState["hooks"] = [];
   return next;
 }
 

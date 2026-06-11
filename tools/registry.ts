@@ -25,6 +25,7 @@ import { setScenePresenceToolDefinition } from "./state/set-scene-presence.ts";
 import { submitDirectionPacketToolDefinition } from "./state/submit-direction-packet.ts";
 import { updateActorConditionToolDefinition } from "./state/update-actor-condition.ts";
 import { updateEconomyToolDefinition } from "./state/update-economy.ts";
+import { updateHookToolDefinition } from "./state/update-hook.ts";
 import { updateServantFormToolDefinition } from "./state/update-servant-form.ts";
 import { upsertActorToolDefinition } from "./state/upsert-actor.ts";
 
@@ -48,6 +49,7 @@ const TOOL_DEFINITIONS: readonly FsnToolDefinition[] = [
   resolveCombatExchangeToolDefinition,
   privateResolveToolDefinition,
   submitDirectionPacketToolDefinition,
+  updateHookToolDefinition,
   lookupToolDefinition,
   patchStateToolDefinition,
   overrideLockedFactToolDefinition,

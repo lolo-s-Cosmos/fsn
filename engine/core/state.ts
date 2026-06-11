@@ -90,7 +90,7 @@ export interface GameState {
 }
 
 export interface StateMeta {
-  schemaVersion: 5;
+  schemaVersion: 6;
   createdAt: string;
   updatedAt: string;
 }
@@ -108,6 +108,21 @@ export interface PublicGameState {
   turnLog: TurnLogEntry[];
   /** 裁决已出、尚未落地的强制状态变更；canonical commit 前必须清空 */
   obligations: TurnObligation[];
+  /** Mystery hook 账本：hook budget 从 prompt 自觉变成领域对象（backlog #2） */
+  hooks: HookState[];
+}
+
+export type HookStatus = "active" | "parked" | "paid" | "escalated" | "retired";
+
+export interface HookState {
+  id: string;
+  label: string;
+  status: HookStatus;
+  /** 上次在正文中出现的游戏内时刻 */
+  lastSurfacedAt: string;
+  surfaceCount: number;
+  /** 上次复现带来的新状态；复现/升级/兑现时必填 */
+  lastNovelty: string;
 }
 
 export type TurnObligationKind =
@@ -562,4 +577,4 @@ export interface StateExport extends Omit<GameState, "public"> {
 
 export type State = GameState;
 
-export const CURRENT_STATE_SCHEMA_VERSION = 5;
+export const CURRENT_STATE_SCHEMA_VERSION = 6;
