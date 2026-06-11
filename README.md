@@ -46,7 +46,7 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 ```txt
 /status     查看当前时间、地点、目标、威胁和资源
 /inventory  查看当前玩家可见资金与物品
-/fate-compact 手动压缩聊天上下文
+/compact    手动压缩聊天上下文（项目已接管为 Fate 压缩策略，自动压缩同样生效）
 ```
 
 `/status` 和 `/inventory` 是 UI 面板，不是剧情动作；它们用于命令行里查看自己当前知道/持有的东西。

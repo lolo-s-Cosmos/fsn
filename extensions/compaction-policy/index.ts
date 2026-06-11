@@ -1,11 +1,11 @@
-import { complete } from "@earendil-works/pi-ai";
 import type {
   ExtensionAPI,
   ExtensionContext,
   SessionBeforeCompactEvent,
 } from "@earendil-works/pi-coding-agent";
-import { convertToLlm, serializeConversation } from "@earendil-works/pi-coding-agent";
 
+import { complete } from "@earendil-works/pi-ai";
+import { convertToLlm, serializeConversation } from "@earendil-works/pi-coding-agent";
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -31,43 +31,37 @@ const SUMMARIZER_SYSTEM_PROMPT = [
 ].join("\n");
 
 export default function compactionPolicyExtension(pi: ExtensionAPI): void {
-  pi.registerCommand("fate-compact", {
-    description: "Compact chat memory with Fate sandbox state exclusion reference",
-    // eslint-disable-next-line @typescript-eslint/require-await -- registerCommand requires a Promise-returning handler; ctx.compact is fire-and-forget
-    handler: async (_args, ctx) => {
-      if (ctx.hasUI) {
-        ctx.ui.notify("Fate compaction started", "info");
-      }
-      ctx.compact({
-        // 仅在 session_before_compact 接管失败、回退到内置压缩时生效。
-        customInstructions: buildFallbackInstructions(ctx),
-        onComplete: () => {
-          if (ctx.hasUI) {
-            ctx.ui.notify("Fate compaction completed", "info");
-          }
-        },
-        onError: (error) => {
-          if (ctx.hasUI) {
-            ctx.ui.notify(`Fate compaction failed: ${error.message}`, "error");
-          }
-        },
-      });
-    },
-  });
-
-  // 完全接管手动与自动压缩：内置 SUMMARIZATION_PROMPT（Goal/Progress/...
+  // 完全接管手动 /compact 与自动压缩：内置 SUMMARIZATION_PROMPT（Goal/Progress/...
   // 编码任务模板）不再参与，policy 成为唯一指令。
   pi.on("session_before_compact", async (event, ctx) => {
     return await runFsnCompaction(event, ctx);
+  });
+
+  pi.on("session_compact", async (event, ctx) => {
+    notify(
+      ctx,
+      event.fromExtension
+        ? "Fate compaction completed"
+        : "Built-in compaction completed (Fate takeover did not run)",
+      event.fromExtension ? "info" : "warning",
+    );
   });
 }
 
 async function runFsnCompaction(
   event: SessionBeforeCompactEvent,
   ctx: ExtensionContext,
-): Promise<{ compaction: { summary: string; firstKeptEntryId: string; tokensBefore: number } } | undefined> {
+): Promise<
+  { compaction: { summary: string; firstKeptEntryId: string; tokensBefore: number } } | undefined
+> {
   const { preparation, signal } = event;
-  const { messagesToSummarize, turnPrefixMessages, firstKeptEntryId, tokensBefore, previousSummary } = preparation;
+  const {
+    messagesToSummarize,
+    turnPrefixMessages,
+    firstKeptEntryId,
+    tokensBefore,
+    previousSummary,
+  } = preparation;
 
   const model = ctx.model;
   if (model === undefined) {
@@ -77,7 +71,11 @@ async function runFsnCompaction(
 
   const auth = await ctx.modelRegistry.getApiKeyAndHeaders(model);
   if (!auth.ok || auth.apiKey === undefined) {
-    notify(ctx, "Fate compaction: model auth unavailable, falling back to built-in compaction", "warning");
+    notify(
+      ctx,
+      "Fate compaction: model auth unavailable, falling back to built-in compaction",
+      "warning",
+    );
     return undefined;
   }
 
@@ -92,7 +90,11 @@ async function runFsnCompaction(
     "info",
   );
 
-  const promptText = buildSummarizerPrompt(ctx, previousSummary, serializeConversation(convertToLlm(allMessages)));
+  const promptText = buildSummarizerPrompt(
+    ctx,
+    previousSummary,
+    serializeConversation(convertToLlm(allMessages)),
+  );
 
   try {
     const response = await complete(
@@ -110,9 +112,10 @@ async function runFsnCompaction(
       {
         apiKey: auth.apiKey,
         headers: auth.headers,
-        maxTokens: preparation.settings.reserveTokens > 0
-          ? preparation.settings.reserveTokens
-          : FALLBACK_SUMMARY_MAX_TOKENS,
+        maxTokens:
+          preparation.settings.reserveTokens > 0
+            ? preparation.settings.reserveTokens
+            : FALLBACK_SUMMARY_MAX_TOKENS,
         signal,
       },
     );
@@ -125,7 +128,11 @@ async function runFsnCompaction(
 
     if (summary === "") {
       if (!signal.aborted) {
-        notify(ctx, "Fate compaction summary was empty, falling back to built-in compaction", "warning");
+        notify(
+          ctx,
+          "Fate compaction summary was empty, falling back to built-in compaction",
+          "warning",
+        );
       }
       return undefined;
     }
@@ -133,7 +140,11 @@ async function runFsnCompaction(
     return { compaction: { summary, firstKeptEntryId, tokensBefore } };
   } catch (error) {
     if (!signal.aborted) {
-      notify(ctx, `Fate compaction failed (${formatError(error)}), falling back to built-in compaction`, "warning");
+      notify(
+        ctx,
+        `Fate compaction failed (${formatError(error)}), falling back to built-in compaction`,
+        "warning",
+      );
     }
     return undefined;
   }
@@ -168,20 +179,6 @@ function buildSummarizerPrompt(
     "Now produce the compaction summary following the policy above.",
   );
   return sections.join("\n");
-}
-
-/**
- * 回退路径（接管失败时内置压缩仍会运行）下的 customInstructions：
- * 内置 prompt 会把它当 "Additional focus" 附注，效果有限但好过没有。
- */
-function buildFallbackInstructions(ctx: ExtensionContext): string {
-  return [
-    readFileSync(POLICY_PATH, "utf-8").trim(),
-    "",
-    "<current_state_for_exclusion>",
-    JSON.stringify(readStateExclusionDigest(ctx), null, 2),
-    "</current_state_for_exclusion>",
-  ].join("\n");
 }
 
 /**
