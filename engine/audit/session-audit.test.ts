@@ -1,0 +1,328 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+
+import {
+  auditSession,
+  groupTurns,
+  measureGetStatusUsage,
+  measureLint,
+  measureParallelLine,
+  measurePressure,
+  measureTimeCoverage,
+  parseSessionJsonl,
+  reconstructActivePath,
+  renderAuditReport,
+} from "./session-audit.ts";
+
+// ---------- fixture 构造 ----------
+
+interface ChainSpec {
+  kind: "user" | "assistant" | "toolResult" | "state";
+  text?: string;
+  toolCalls?: Array<{ id: string; name: string; args?: unknown }>;
+  toolCallId?: string;
+  isError?: boolean;
+  secrets?: unknown;
+}
+
+/** 按线性链构造 session JSONL 文本，id 自动递增、parentId 自动连接 */
+function buildJsonl(specs: readonly ChainSpec[]): string {
+  const lines: string[] = [
+    JSON.stringify({ type: "session", version: 3, id: "e0", timestamp: "t" }),
+  ];
+  let parent = "e0";
+  specs.forEach((spec, i) => {
+    const id = `e${i + 1}`;
+    if (spec.kind === "state") {
+      lines.push(
+        JSON.stringify({
+          type: "custom",
+          customType: "fsn-state",
+          id,
+          parentId: parent,
+          data: { v: 1, turn: i, state: { meta: {}, public: {}, secrets: spec.secrets ?? {} } },
+        }),
+      );
+    } else if (spec.kind === "toolResult") {
+      lines.push(
+        JSON.stringify({
+          type: "message",
+          id,
+          parentId: parent,
+          message: {
+            role: "toolResult",
+            toolCallId: spec.toolCallId,
+            isError: spec.isError ?? false,
+            content: [],
+          },
+        }),
+      );
+    } else {
+      const content: unknown[] = [];
+      if (spec.text !== undefined) content.push({ type: "text", text: spec.text });
+      for (const call of spec.toolCalls ?? []) {
+        content.push({
+          type: "toolCall",
+          id: call.id,
+          name: call.name,
+          arguments: call.args ?? {},
+        });
+      }
+      lines.push(
+        JSON.stringify({
+          type: "message",
+          id,
+          parentId: parent,
+          message: { role: spec.kind, content },
+        }),
+      );
+    }
+    parent = id;
+  });
+  return lines.join("\n");
+}
+
+const ELAPSED_5 = { kind: "elapsed", elapsedMinutes: 5, reason: "对话" };
+const ELAPSED_45 = { kind: "elapsed", elapsedMinutes: 45, reason: "休整" };
+
+/** 一个普通轮：user → assistant(commit_turn) → result → assistant(正文) */
+function plainTurn(
+  callId: string,
+  options: { time?: unknown; prose?: string; isError?: boolean } = {},
+): ChainSpec[] {
+  return [
+    { kind: "user", text: "玩家行动" },
+    {
+      kind: "assistant",
+      toolCalls: [{ id: callId, name: "commit_turn", args: { events: [], time: options.time } }],
+    },
+    { kind: "toolResult", toolCallId: callId, isError: options.isError ?? false },
+    {
+      kind: "assistant",
+      text: options.prose ?? "她合上门，走廊重新陷入安静。脚步声停在第三级台阶。",
+    },
+  ];
+}
+
+// ---------- 解析与路径重建 ----------
+
+void test("parseSessionJsonl skips corrupted lines", () => {
+  const content = `${JSON.stringify({ type: "session", id: "a" })}\nnot-json\n${JSON.stringify({ type: "message", id: "b", parentId: "a", message: { role: "user", content: [] } })}`;
+  const entries = parseSessionJsonl(content);
+  assert.equal(entries.length, 2);
+});
+
+void test("reconstructActivePath drops abandoned branches", () => {
+  // e0 ← e1 ← e2(abandoned)；e1 ← e3 ← e4(leaf)
+  const lines = [
+    { type: "session", id: "e0" },
+    { type: "message", id: "e1", parentId: "e0", message: { role: "user", content: [] } },
+    { type: "message", id: "e2", parentId: "e1", message: { role: "assistant", content: [] } },
+    { type: "message", id: "e3", parentId: "e1", message: { role: "assistant", content: [] } },
+    { type: "message", id: "e4", parentId: "e3", message: { role: "user", content: [] } },
+  ];
+  const path = reconstructActivePath(
+    parseSessionJsonl(lines.map((l) => JSON.stringify(l)).join("\n")),
+  );
+  assert.deepEqual(
+    path.map((e) => e.id),
+    ["e0", "e1", "e3", "e4"],
+  );
+});
+
+void test("groupTurns maps tool results onto calls and tracks final prose", () => {
+  const jsonl = buildJsonl([
+    { kind: "user", text: "出发" },
+    {
+      kind: "assistant",
+      text: "中间叙述。",
+      toolCalls: [{ id: "c1", name: "commit_turn", args: { time: ELAPSED_5 } }],
+    },
+    { kind: "toolResult", toolCallId: "c1" },
+    { kind: "assistant", text: "最终正文。" },
+  ]);
+  const turns = groupTurns(reconstructActivePath(parseSessionJsonl(jsonl)));
+  assert.equal(turns.length, 1);
+  const turn = turns[0];
+  assert.ok(turn);
+  assert.equal(turn.toolCalls.length, 1);
+  assert.equal(turn.toolCalls[0]?.accepted, true);
+  assert.equal(turn.finalProse, "最终正文。");
+  assert.ok(turn.fullText.includes("中间叙述。"));
+});
+
+void test("groupTurns marks error results as not accepted", () => {
+  const jsonl = buildJsonl(plainTurn("c1", { isError: true }));
+  const turns = groupTurns(reconstructActivePath(parseSessionJsonl(jsonl)));
+  assert.equal(turns[0]?.toolCalls[0]?.accepted, false);
+});
+
+// ---------- 指标 ----------
+
+void test("measureTimeCoverage counts accepted canonical calls with top-level time", () => {
+  const jsonl = buildJsonl([
+    ...plainTurn("c1", { time: ELAPSED_5 }),
+    ...plainTurn("c2", {}), // accepted but missing time
+    ...plainTurn("c3", { time: ELAPSED_5, isError: true }), // rejected: not counted
+  ]);
+  const turns = groupTurns(reconstructActivePath(parseSessionJsonl(jsonl)));
+  const tc = measureTimeCoverage(turns);
+  assert.equal(tc.acceptedCanonicalCalls, 2);
+  assert.equal(tc.acceptedWithTime, 1);
+  assert.equal(tc.turnsWithCanonical, 2);
+  assert.equal(tc.turnsCovered, 1);
+  assert.deepEqual(tc.missingTimeTurns, [2]);
+});
+
+void test("measureGetStatusUsage flags repeat reads without state change", () => {
+  const jsonl = buildJsonl([
+    { kind: "user", text: "看状态" },
+    { kind: "assistant", toolCalls: [{ id: "s1", name: "get_status" }] },
+    { kind: "toolResult", toolCallId: "s1" },
+    { kind: "assistant", toolCalls: [{ id: "s2", name: "get_status" }] }, // 冗余
+    { kind: "toolResult", toolCallId: "s2" },
+    {
+      kind: "assistant",
+      toolCalls: [{ id: "c1", name: "commit_turn", args: { time: ELAPSED_5 } }],
+    },
+    { kind: "toolResult", toolCallId: "c1" },
+    { kind: "assistant", toolCalls: [{ id: "s3", name: "get_status" }] }, // 合法：state 已变
+    { kind: "toolResult", toolCallId: "s3" },
+    { kind: "assistant", text: "正文。" },
+  ]);
+  const usage = measureGetStatusUsage(groupTurns(reconstructActivePath(parseSessionJsonl(jsonl))));
+  assert.equal(usage.calls, 3);
+  assert.equal(usage.redundant, 1);
+});
+
+void test("measurePressure tracks no-cost streaks", () => {
+  const costTurn: ChainSpec[] = [
+    { kind: "user", text: "进攻" },
+    { kind: "assistant", toolCalls: [{ id: "x1", name: "resolve_combat_exchange", args: {} }] },
+    { kind: "toolResult", toolCallId: "x1" },
+    { kind: "assistant", text: "正文。" },
+  ];
+  const jsonl = buildJsonl([
+    ...plainTurn("c1", { time: ELAPSED_5 }),
+    ...plainTurn("c2", { time: ELAPSED_5 }),
+    ...costTurn,
+    ...plainTurn("c3", { time: ELAPSED_5 }),
+  ]);
+  const pressure = measurePressure(groupTurns(reconstructActivePath(parseSessionJsonl(jsonl))));
+  assert.equal(pressure.noCostTurns, 3);
+  assert.equal(pressure.longestStreak, 2);
+  assert.deepEqual(pressure.streaks, [2, 1]);
+});
+
+void test("add-threat scene event counts as cost", () => {
+  const jsonl = buildJsonl([
+    { kind: "user", text: "前进" },
+    {
+      kind: "assistant",
+      toolCalls: [
+        {
+          id: "c1",
+          name: "commit_turn",
+          args: {
+            time: ELAPSED_5,
+            events: [{ kind: "update-scene", event: { kind: "add-threat", threatId: "t" } }],
+          },
+        },
+      ],
+    },
+    { kind: "toolResult", toolCallId: "c1" },
+    { kind: "assistant", text: "正文。" },
+  ]);
+  const pressure = measurePressure(groupTurns(reconstructActivePath(parseSessionJsonl(jsonl))));
+  assert.equal(pressure.noCostTurns, 0);
+});
+
+void test("measureLint reports prose violations and secret leaks", () => {
+  const secrets = {
+    actorSecrets: {
+      saber: { trueName: { value: "两仪式", revealState: "hidden" }, hiddenNoblePhantasms: [] },
+    },
+  };
+  const jsonl = buildJsonl([
+    { kind: "state", secrets },
+    ...plainTurn("c1", { prose: "好的，以下是剧情。她说：你就是两仪式吧。" }),
+  ]);
+  const lint = measureLint(groupTurns(reconstructActivePath(parseSessionJsonl(jsonl))));
+  assert.equal(lint.turnsWithFindings, 1);
+  assert.ok((lint.findingsByRule["opening-delivery-wrapper"] ?? 0) >= 1);
+  assert.equal(lint.blockFindings.length, 1);
+  assert.equal(lint.blockFindings[0]?.finding.match, "两仪式");
+});
+
+void test("measureLint uses latest secrets snapshot inside the turn", () => {
+  const secrets = {
+    actorSecrets: { a: { trueName: { value: "美狄亚", revealState: "hidden" } } },
+  };
+  // 秘密在轮内才配置（state 快照出现在 toolResult 后）
+  const jsonl = buildJsonl([
+    { kind: "user", text: "行动" },
+    { kind: "assistant", toolCalls: [{ id: "c1", name: "reveal_secret", args: {} }] },
+    { kind: "toolResult", toolCallId: "c1" },
+    { kind: "state", secrets },
+    { kind: "assistant", text: "幕后，美狄亚冷笑。" },
+  ]);
+  const lint = measureLint(groupTurns(reconstructActivePath(parseSessionJsonl(jsonl))));
+  assert.equal(lint.blockFindings.length, 1);
+});
+
+void test("measureParallelLine computes trigger hit ratio", () => {
+  const parallelCall: ChainSpec[] = [
+    {
+      kind: "assistant",
+      toolCalls: [{ id: "p1", name: "subagent", args: { agent: "parallel-line", task: "推进" } }],
+    },
+    { kind: "toolResult", toolCallId: "p1" },
+  ];
+  const jsonl = buildJsonl([
+    // turn 1：45 分钟推进（触发）且调用了 parallel-line
+    { kind: "user", text: "休整" },
+    {
+      kind: "assistant",
+      toolCalls: [{ id: "c1", name: "commit_turn", args: { time: ELAPSED_45 } }],
+    },
+    { kind: "toolResult", toolCallId: "c1" },
+    ...parallelCall,
+    { kind: "assistant", text: "正文。" },
+    // turn 2：45 分钟推进（触发）但未调用
+    ...plainTurn("c2", { time: ELAPSED_45 }),
+  ]);
+  const turns = groupTurns(reconstructActivePath(parseSessionJsonl(jsonl)));
+  const pl = measureParallelLine(turns);
+  assert.equal(pl.calls, 1);
+  assert.equal(pl.triggeredTurns, 2);
+  assert.equal(pl.triggeredTurnsWithCall, 1);
+});
+
+void test("beat complete triggers parallel-line expectation", () => {
+  const jsonl = buildJsonl([
+    { kind: "user", text: "收尾" },
+    {
+      kind: "assistant",
+      toolCalls: [
+        { id: "c1", name: "progress_scene_beat", args: { kind: "complete", time: ELAPSED_5 } },
+      ],
+    },
+    { kind: "toolResult", toolCallId: "c1" },
+    { kind: "assistant", text: "正文。" },
+  ]);
+  const pl = measureParallelLine(groupTurns(reconstructActivePath(parseSessionJsonl(jsonl))));
+  assert.equal(pl.triggeredTurns, 1);
+  assert.equal(pl.triggeredTurnsWithCall, 0);
+});
+
+// ---------- 端到端 ----------
+
+void test("auditSession end-to-end smoke", () => {
+  const jsonl = buildJsonl([...plainTurn("c1", { time: ELAPSED_5 }), ...plainTurn("c2", {})]);
+  const report = auditSession(jsonl);
+  assert.equal(report.turnCount, 2);
+  assert.equal(report.timeCoverage.acceptedCanonicalCalls, 2);
+  const rendered = renderAuditReport(report);
+  assert.ok(rendered.includes("[时间推进覆盖率]"));
+  assert.ok(rendered.includes("commit_turn"));
+});

@@ -42,6 +42,7 @@
     "format": "oxfmt",
     "format:check": "oxfmt --check",
     "test": "node --test 'engine/**/*.test.ts' 'tools/**/*.test.ts' 'tests/**/*.test.ts' 'extensions/**/*.test.ts'",
+    "audit:session": "node scripts/audit-session.ts",
     "deadcode": "pnpx knip --include files"
   },
   "dependencies": {
