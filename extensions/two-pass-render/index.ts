@@ -221,22 +221,22 @@ function clearRenderWidget(ctx: ExtensionContext): void {
 }
 
 /**
- * 渲染轮可以跑在与结算轮不同的模型上：`FSN_RENDER_MODEL=provider/model-id`。
+ * 渲染轮可以跑在与结算轮不同的模型上：`FATE_RENDER_MODEL=provider/model-id`。
  * 未设置或找不到时回退到结算轮的当前模型。
  */
 function resolveRendererModel(ctx: ExtensionContext): ExtensionContext["model"] {
-  const override = process.env["FSN_RENDER_MODEL"]?.trim();
+  const override = process.env["FATE_RENDER_MODEL"]?.trim();
   if (override === undefined || override === "") {
     return ctx.model;
   }
   const slash = override.indexOf("/");
   if (slash <= 0 || slash === override.length - 1) {
-    notify(ctx, `FSN_RENDER_MODEL 格式应为 provider/model-id，得到：${override}`, "warning");
+    notify(ctx, `FATE_RENDER_MODEL 格式应为 provider/model-id，得到：${override}`, "warning");
     return ctx.model;
   }
   const model = ctx.modelRegistry.find(override.slice(0, slash), override.slice(slash + 1));
   if (model === undefined) {
-    notify(ctx, `FSN_RENDER_MODEL 未命中任何已注册模型：${override}，回退结算模型`, "warning");
+    notify(ctx, `FATE_RENDER_MODEL 未命中任何已注册模型：${override}，回退结算模型`, "warning");
     return ctx.model;
   }
   return model;
