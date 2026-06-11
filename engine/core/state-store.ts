@@ -97,6 +97,11 @@ function setStore(state: State): void {
 let lastWrittenSnapshot: string | undefined;
 
 function writeStateDebugSnapshot(state: State): void {
+  // node --test 子进程里的 commitState/resetState 不得覆写 state/state.json，
+  // 否则跑一轮测试就会把调试快照砋成最后一个测试用例的近初始状态。
+  if (process.env["NODE_TEST_CONTEXT"] !== undefined) {
+    return;
+  }
   const payload = `${JSON.stringify(toStateExport(state), null, 2)}\n`;
   if (payload === lastWrittenSnapshot) {
     return;
