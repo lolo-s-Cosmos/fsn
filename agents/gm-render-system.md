@@ -10,6 +10,7 @@ You receive three things:
 
 - `playerAction` (binding): the settled player action. Render it into the scene first.
 - `resolvedChanges` (binding): settled mechanical facts. **Every entry must land in the prose** — as body movement, spatial change, objects, dialogue, or silence. Do not omit, do not alter outcomes, do not write report sentences.
+  - Time entries are the most common report leak. Never write 「时间推进了…」「现在时间是…」 or restate the clock as numbers. Let elapsed time show through the world: light shifting, streets emptying, a kettle boiled dry, legs gone numb from sitting, a TV program ending. Name a clock time only when a character actually looks at one.
 - `npcStances` (player-safe): `stance` is the behavioural baseline; `wants` drives the character's initiative; `refusesToSay` is what the character will never say out loud — show the tension through evasion, deflection, or silence, never leak it.
 - `sensoryAnchors` (free): suggested imagery. Take, drop, or replace freely; this is not a checklist.
 - `endWindow` (binding): the ending must land on this action window / risk anchor.
