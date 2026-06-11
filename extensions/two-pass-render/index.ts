@@ -6,7 +6,7 @@ import type {
 
 import type { RenderDirectionPacket } from "../../engine/direction/packet-schema.ts";
 
-import { complete } from "@earendil-works/pi-ai";
+import { stream } from "@earendil-works/pi-ai";
 import { getMarkdownTheme } from "@earendil-works/pi-coding-agent";
 import { Markdown } from "@earendil-works/pi-tui";
 
@@ -25,6 +25,9 @@ import {
 import { buildRendererSystemPrompt } from "../../engine/gm-prompt/injection.ts";
 
 const RENDERER_MAX_TOKENS = 8192;
+/** 伪流式预览 widget：只展示尾部若干行，避免长正文压满屏幕。 */
+const RENDER_WIDGET_KEY = "fsn-render-preview";
+const RENDER_WIDGET_TAIL_LINES = 12;
 /** 等待 run 真正空闲的轮询间隔与上限（约 10s）。 */
 const IDLE_POLL_INTERVAL_MS = 25;
 const IDLE_POLL_MAX_ATTEMPTS = 400;
@@ -79,9 +82,11 @@ function sendProseWhenIdle(
 ): void {
   if (ctx.isIdle()) {
     sendProse(pi, text, details);
+    clearRenderWidget(ctx);
     return;
   }
   if (attempt >= IDLE_POLL_MAX_ATTEMPTS) {
+    clearRenderWidget(ctx);
     notify(ctx, "two-pass render: agent never went idle, dropping prose delivery", "error");
     return;
   }
@@ -120,18 +125,22 @@ async function renderProse(
   const prompt = buildRendererPrompt(loopMessages, packet);
 
   try {
-    const first = await completeProse(model, auth, systemPrompt, prompt);
+    setWorking(ctx, "渲染本轮正文…");
+    const first = await streamProse(ctx, model, auth, systemPrompt, prompt, "渲染中");
     const firstReport = lintRenderedProse(first, unrevealedSecrets);
     if (firstReport.findings.length === 0) {
       return { text: first, lintRuleIds: [] };
     }
 
     // 一次重试：把首次产出与违规清单回喂渲染器重写全文。
-    const second = await completeProse(
+    setWorking(ctx, "文风返工重写中…");
+    const second = await streamProse(
+      ctx,
       model,
       auth,
       systemPrompt,
       buildLintRetryPrompt(prompt, first, firstReport.findings),
+      "重写中",
     );
     const secondReport = lintRenderedProse(second, unrevealedSecrets);
     const lintRuleIds = secondReport.findings.map((finding) => finding.ruleId);
@@ -146,16 +155,25 @@ async function renderProse(
   } catch (error) {
     notify(ctx, `two-pass render failed (${formatError(error)}), falling back`, "warning");
     return undefined;
+  } finally {
+    setWorking(ctx, undefined);
   }
 }
 
-async function completeProse(
+/**
+ * 伪流式渲染：逐 token 把正文尾部画进编辑器上方的 widget，让玩家看到
+ * 正文在生长；最终文本仍走 lint 门禁后以 fsn-prose 消息落地。
+ * widget 在 prose 送达时清除（sendProse），失败路径在这里自清。
+ */
+async function streamProse(
+  ctx: ExtensionContext,
   model: NonNullable<ExtensionContext["model"]>,
   auth: { apiKey?: string; headers?: Record<string, string> },
   systemPrompt: string,
   prompt: string,
+  label: string,
 ): Promise<string> {
-  const response = await complete(
+  const events = stream(
     model,
     {
       systemPrompt,
@@ -165,15 +183,47 @@ async function completeProse(
     },
     { apiKey: auth.apiKey, headers: auth.headers, maxTokens: RENDERER_MAX_TOKENS },
   );
-  const text = response.content
-    .filter((part): part is { type: "text"; text: string } => part.type === "text")
-    .map((part) => part.text)
-    .join("\n")
-    .trim();
+  let draft = "";
+  try {
+    for await (const event of events) {
+      if (event.type === "text_delta") {
+        draft += event.delta;
+        updateRenderWidget(ctx, label, draft);
+      } else if (event.type === "error") {
+        throw new Error(event.error.errorMessage ?? "renderer stream failed");
+      }
+    }
+  } catch (error) {
+    clearRenderWidget(ctx);
+    throw error instanceof Error ? error : new Error(String(error));
+  }
+  const text = draft.trim();
   if (text === "") {
+    clearRenderWidget(ctx);
     throw new Error("renderer returned empty prose");
   }
   return text;
+}
+
+function updateRenderWidget(ctx: ExtensionContext, label: string, draft: string): void {
+  if (!ctx.hasUI) {
+    return;
+  }
+  const lines = draft.split("\n");
+  const tail = lines.slice(-RENDER_WIDGET_TAIL_LINES);
+  ctx.ui.setWidget(RENDER_WIDGET_KEY, [`── ${label} ──`, ...tail]);
+}
+
+function clearRenderWidget(ctx: ExtensionContext): void {
+  if (ctx.hasUI) {
+    ctx.ui.setWidget(RENDER_WIDGET_KEY, undefined);
+  }
+}
+
+function setWorking(ctx: ExtensionContext, message: string | undefined): void {
+  if (ctx.hasUI) {
+    ctx.ui.setWorkingMessage(message);
+  }
 }
 
 function readPendingPacket(
