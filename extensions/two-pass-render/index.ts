@@ -15,6 +15,10 @@ import { syncStateFromSessionManager } from "../../engine/core/session-hydration
 import { getState } from "../../engine/core/state-store.ts";
 import { loadProseDigests, saveProseDigest } from "../../engine/direction/prose-digest-store.ts";
 import {
+  type RenderCallKind,
+  recordRenderUsage,
+} from "../../engine/direction/render-usage-store.ts";
+import {
   buildLintRetryMessages,
   buildRendererMessages,
   findPendingDirectionPacket,
@@ -131,7 +135,7 @@ async function renderProse(
 
   try {
     setWorking(ctx, "渲染本轮正文…");
-    const first = await streamProse(ctx, model, auth, systemPrompt, baseMessages, "渲染中");
+    const first = await streamProse(ctx, model, auth, systemPrompt, baseMessages, "渲染中", "render");
     const firstReport = lintRenderedProse(first, unrevealedSecrets);
     if (firstReport.findings.length === 0) {
       return { text: first, lintRuleIds: [] };
@@ -146,6 +150,7 @@ async function renderProse(
       systemPrompt,
       buildLintRetryMessages(baseMessages, first, firstReport.findings),
       "重写中",
+      "lint-retry",
     );
     const secondReport = lintRenderedProse(second, unrevealedSecrets);
     const lintRuleIds = secondReport.findings.map((finding) => finding.ruleId);
@@ -177,6 +182,7 @@ async function streamProse(
   systemPrompt: string,
   rendererMessages: readonly RendererMessage[],
   label: string,
+  usageKind: RenderCallKind,
 ): Promise<string> {
   const events = stream(
     model,
@@ -192,6 +198,8 @@ async function streamProse(
       if (event.type === "text_delta") {
         draft += event.delta;
         updateRenderWidget(ctx, label, draft);
+      } else if (event.type === "done") {
+        captureUsage(usageKind, model.id, event.message.usage);
       } else if (event.type === "error") {
         throw new Error(event.error.errorMessage ?? "renderer stream failed");
       }
@@ -209,6 +217,31 @@ async function streamProse(
 }
 
 type StreamMessage = Parameters<typeof stream>[1]["messages"][number];
+
+interface DoneUsage {
+  input: number;
+  output: number;
+  cacheRead: number;
+  cacheWrite: number;
+  totalTokens: number;
+  cost: { total: number };
+}
+
+/** 接住 done 事件的 usage 并记账；记账失败不能影响渲染交付。 */
+function captureUsage(kind: RenderCallKind, modelId: string, usage: DoneUsage): void {
+  try {
+    recordRenderUsage(kind, modelId, {
+      input: usage.input,
+      output: usage.output,
+      cacheRead: usage.cacheRead,
+      cacheWrite: usage.cacheWrite,
+      totalTokens: usage.totalTokens,
+      costTotal: usage.cost.total,
+    });
+  } catch {
+    // 静默：账本损坏/磁盘问题不阻塞渲染。
+  }
+}
 
 /** RendererMessage → pi-ai 消息；assistant 位需要补齐元数据字段（历史正文伪装成模型旧产出）。 */
 function toStreamMessage(
@@ -296,6 +329,8 @@ async function writeTurnDigest(
     for await (const event of events) {
       if (event.type === "text_delta") {
         digest += event.delta;
+      } else if (event.type === "done") {
+        captureUsage("digest", model.id, event.message.usage);
       } else if (event.type === "error") {
         return;
       }
