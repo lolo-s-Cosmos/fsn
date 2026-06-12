@@ -58,6 +58,23 @@ void test("negation-reversal hits 并非…而是 and 与其说", () => {
   assert.ok(ruleIds("与其说是愤怒，不如说是悲哀。").includes("negation-reversal"));
 });
 
+void test("negation-reversal-colloquial hits narration variants but spares dialogue", () => {
+  const rule = "negation-reversal-colloquial";
+  // 逗号变体
+  assert.ok(ruleIds("不是看出来的，是摸出来的。").includes(rule));
+  // 句号变体（逗号版被堵后的绕逃路径）
+  assert.ok(ruleIds("不是商量。是判断。").includes(rule));
+  // 台词里的正常纠正句放过
+  assert.ok(!ruleIds("「不是我干的，是他先动手的。」").includes(rule));
+  assert.ok(!ruleIds("「不是商量。是判断。」").includes(rule));
+  // 普通否定句 + 长叙述接句放过
+  assert.ok(
+    !ruleIds(
+      "你不是第一次来这里。是夜里的钟声把这条路变得陌生，让每一步都踩在回忆外面。",
+    ).includes(rule),
+  );
+});
+
 void test("empty-atmosphere hits stock phrases", () => {
   assert.ok(ruleIds("空气中弥漫着血腥味。").includes("empty-atmosphere"));
   assert.ok(ruleIds("她的脸色显得格外苍白。").includes("empty-atmosphere"));
