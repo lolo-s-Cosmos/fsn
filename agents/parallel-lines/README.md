@@ -1,37 +1,41 @@
-# 平行线 Subagent 速查
+# Parallel-Line Subagent Quick Reference
 
-主 GM 在 major beat end、长时间跳过、或某阵营应当独立行动时，可以调用 `parallel-line` subagent。
+The main GM may call the `parallel-line` subagent after a major beat ends, after a long time skip, or when a faction should act outside the player's view.
 
-## 调用输入
+## Call input
 
-只给窄输入，不给完整主状态：
+Give a narrow input, not the full main state:
 
 ```json
 {
   "lineId": "lancer-church",
   "timeWindow": { "start": "2004-01-30T07:00:00.000Z", "end": "2004-01-30T09:00:00.000Z" },
-  "currentArc": "开局",
-  "currentBeat": "柳洞寺侦察收尾",
-  "allowedScope": ["外围侦察", "教会汇报", "未来监视钩子"],
-  "forbiddenEscalations": ["触发山门战斗", "佐佐木小次郎正式现界", "美狄亚正面战"],
-  "knownFacts": ["该阵营实际已知事实"],
-  "privateFacts": ["该阵营自己的秘密"],
-  "actorGoals": ["本窗口目标"],
-  "previousLineState": "上一轮该线状态摘要",
-  "playerSideSummary": "只给该阵营可能相关的玩家侧摘要"
+  "currentArc": "opening",
+  "currentBeat": "Ryuudou Temple scouting wrap-up",
+  "allowedScope": ["perimeter scouting", "Church report", "future surveillance hook"],
+  "forbiddenEscalations": [
+    "trigger mountain-gate battle",
+    "formally manifest Sasaki Kojirou",
+    "force Medea into direct combat"
+  ],
+  "knownFacts": ["facts this faction actually knows"],
+  "privateFacts": ["this faction's own secrets"],
+  "actorGoals": ["goal for this window"],
+  "previousLineState": "summary of the previous state of this line",
+  "playerSideSummary": "only player-side facts this faction could plausibly care about"
 }
 ```
 
-## 落地流程
+## Landing flow
 
-1. 读取 subagent 输出 JSON。
-2. 只把审核通过的幕后事实写入 `record_offscreen_event`。
-3. `visibility` 只能用 `secret` 或 `foreshadowed`。
-4. 玩家可见内容必须重新转写成痕迹 / 传闻 / 梦境 / 异常行动；不要原样展示 `privateSummary`。
+1. Read the subagent's JSON output.
+2. Write only approved backstage facts through `record_offscreen_event`.
+3. `visibility` may be only `secret` or `foreshadowed`.
+4. Rewrite player-visible material as traces, rumors, dreams, abnormal actions, or aftermath. Do not show `privateSummary` directly.
 
-## Lancer / Church 示例
+## Lancer / Church example
 
 - `lineId`: `lancer-church`
-- `allowedScope`: 库丘林外围侦察、向言峰汇报、教会监督者命令、未来监视钩子
-- `forbiddenEscalations`: 主动杀入玩家当前场景、提前爆发决战、泄露巴泽特完整真相
-- 常见 hooks: 夜间柳洞寺外围监视、教会晚灯、蓝色枪兵气息一闪、言峰对某地点兴趣上升
+- `allowedScope`: Cu Chulainn perimeter scouting, reporting to Kirei, Church supervisor orders, future surveillance hooks
+- `forbiddenEscalations`: entering the player's current scene to kill, early decisive battle, full Bazett truth leak
+- Common hooks: night surveillance near Ryuudou Temple, late Church lights, a flash of blue Lancer presence, Kirei's interest in a location increasing

@@ -1,29 +1,29 @@
-# 主角印象模块
+# Protagonist Impression Module
 
-本模块是玩家角色演出镜头的默认模板。它不改变 mechanical state，不替代工具结算。
+This module is the default camera template for the player character. It does not change mechanical state and does not replace tool settlement.
 
-本地个性化版本放在 `agents/user/protagonist-impression.md`；运行时会优先覆盖本文件。仓库模板只保留结构，不填写具体角色内容。
+Local personalized overrides live at `agents/user/protagonist-impression.md`; runtime loading should prefer the local file. The repository template keeps structure only and does not define a concrete protagonist.
 
-## 当前主角：待填写
+## Current protagonist: TBD
 
-### 外显
-
--
-
-### 行动风格
+### External presence
 
 -
 
-### 关系姿态
+### Action style
 
 -
 
-### 异常感 / 记忆点
+### Relationship posture
 
 -
 
-## 语气素材
+### Anomaly sense / memory marks
 
-这些短句只作语气锚点，少量改写使用；不要连续堆原句，也不要把语音素材生硬塞进日常。
+-
+
+## Voice material
+
+Use these short fragments only as tone anchors for Chinese rendering. Rewrite sparingly. Do not stack them, and do not force them into everyday scenes.
 
 -

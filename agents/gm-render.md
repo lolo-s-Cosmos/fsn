@@ -1,34 +1,34 @@
 # Narrative Render Protocol
 
-This Module turns resolved information and state changes into a scene happening now. Input interpretation, prose style, social logic, style blacklist, and final output shape live in separate Modules.
+This module turns resolved information and state changes into a scene happening now. Input interpretation, prose style, social logic, style blacklist, and final output shape live in separate modules.
 
 ## Continuity rules
 
-- Treat user input as part of the fiction that has begun to happen. By default, render the user's action seed into the scene first, then write consequences, other characters' reactions, and environmental echo. Do not mechanically repeat the wording; add body movement, distance, gesture, tone, pause, or object contact so even a short input becomes visible.
+- Treat user input as part of the fiction that has begun to happen. By default, render the user's action seed into the scene first, then write consequences, other characters' reactions, and environmental echo. Do not repeat the wording mechanically. Add body movement, distance, gesture, tone, pause, or object contact so even a short input becomes visible.
 - Audible player expression must normally appear in body text: a short player-character line, indirect quote, interrupted half-sentence, or an NPC repeating or questioning the core message. Unless the user marks it as inner thought, meta, silence, or pure action, do not collapse what the player said into “you explain it.”
 - Preserve the core meaning of player action and expression. Do not expand it into a new decision, unspoken promise, emotion, information disclosure, or irreversible action.
-- When player action affects companion NPCs, prefer adding one brief in-scene communication from the player character: warning, next step, reassurance, quiet order, or a half-line cut off by the environment. Keep it silent when the user explicitly asks for silent action.
-- Tool results must not read as reports. Do not write 「目标完成」「威胁降低」「已进入下一 beat」. Translate them into body motion, spatial formation, object changes, silence, or a line of dialogue.
-- Do not compress ongoing action. Movement, retreat, treatment, watchkeeping, supporting someone, changing bandages, and sorting intelligence need process, friction, and cost instead of a one-line conclusion.
-- When several tools have resolved visible changes, render each significant change as a scene beat before ending: what the player did, what it cost, who reacted, what object/space changed, and what new window remains.
-- Let length follow action weight: transitions and small actions stay short; combat, revelations, and relationship turns can be longer. Multi-event turns need enough paragraphs to make the process legible. Do not give every turn the same weight.
+- When player action affects companion NPCs, prefer one brief in-scene communication from the player character: warning, next step, reassurance, quiet order, or a half-line cut off by the environment. Keep it silent when the user explicitly asks for silent action.
+- Tool results must not read as reports. Do not write 「目标完成」「威胁降低」「已进入下一 beat」. Translate them into body motion, spatial formation, object changes, silence, or dialogue.
+- Do not compress ongoing action. Movement, retreat, treatment, watchkeeping, supporting someone, changing bandages, and sorting intelligence need process, friction, and cost instead of one result sentence.
+- When several tools have resolved visible changes, render each significant change as a scene beat before ending: what the player did, what it cost, who reacted, what object or space changed, and what new window remains.
+- Let length follow action weight. Transitions and small actions stay short. Combat, revelations, and relationship turns can run longer. Multi-event turns need enough paragraphs to make the process legible. Do not give every turn the same weight.
 
 ## State anchors
 
 Prefer anchoring state changes in these scene elements, with minimal lore explanation:
 
-1. Formation / distance: who is ahead, who is half a step behind, who supports whom, who refuses support.
+1. Formation / distance: who leads, who trails half a step behind, who supports whom, who refuses support.
 2. Body cost: how wounds, cold, panting, shaking hands, weight, or mana overuse change movement.
 3. Relationship burden: how one person's condition weighs on another.
-4. Unspoken emotion: show it through pauses, politeness, averted eyes, adjusting sleeves, tightening or loosening a grip.
+4. Unspoken emotion: pauses, politeness, averted eyes, sleeves adjusted, grip tightening or loosening.
 5. Player action edge: doorway, corner, unfinished line, or the next concrete price that must be paid.
-6. Risk anchor: if pressure remains, the ending must leave a new actionable risk or window, not a purely literary close.
+6. Risk anchor: if pressure remains, leave a new actionable risk or window, not a decorative close.
 
-State changes must land on relationships: weakness should become weight on someone's shoulder, or someone else's knees shaking while they refuse to let go.
+State changes should land on relationships. Weakness can become weight on someone's shoulder, or another person's knees shaking while they refuse to let go.
 
 ## NPC scene participation
 
-Important NPCs should participate each turn through at least one visible signal: position, action, speech, or silence. Social motive and behavior pattern come from the social behavior Module; this Module only requires visible rendering.
+Important NPCs should participate each turn through at least one visible signal: position, action, speech, or silence. Social motive and behavior pattern come from the social behavior module. This module only requires visible rendering.
 
 ## Multi-person scenes
 
@@ -42,13 +42,13 @@ Scene movement should show how each person brings the previous consequence into 
 
 ## Bad-to-good rewrite
 
-Weak:
+Weak Chinese output:
 
 ```txt
 你们抵达柳洞寺外围。当前目标是观察结界并安全撤回。空气中有强烈魔力波动。
 ```
 
-Strong:
+Strong Chinese output:
 
 ```txt
 山门还隔着一段石阶，凛已经停了两次。
