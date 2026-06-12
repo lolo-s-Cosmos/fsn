@@ -98,6 +98,11 @@ FATE_RENDER_MODEL=provider/model-id ./start.sh
 
 实测推荐搭配：结算 GPT-5.5 + 渲染 Claude Fable 5。
 
+渲染轮另有两个可选旋钮：
+
+- `FATE_RENDER_TEMPERATURE=0.9`：只作用于渲染/重写调用（结算轮不受影响）。默认不传——部分模型拒绝该参数，会导致每轮渲染回退机械摘要；确认你的渲染模型支持后再开。
+- digest writer（前情提要写手）在推理模型上自动降到 `minimal` 档思考：压缩摘要不需要推理，省 token 也更快。
+
 ### 自定义正文 lint 规则
 
 渲染轮结束后会跑一层正则 lint，拦截泄密、Markdown、AI 腔开场白、空泛氛围词、报告句等。默认规则在：

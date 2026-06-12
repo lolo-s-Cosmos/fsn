@@ -6,7 +6,7 @@ import type {
 
 import type { RenderDirectionPacket } from "../../engine/direction/packet-schema.ts";
 
-import { stream } from "@earendil-works/pi-ai";
+import { stream, streamSimple } from "@earendil-works/pi-ai";
 import { getMarkdownTheme } from "@earendil-works/pi-coding-agent";
 import { Markdown } from "@earendil-works/pi-tui";
 
@@ -24,7 +24,6 @@ import {
   redactSecrets,
   type RendererMessage,
 } from "../../engine/direction/render-turn.ts";
-
 import { buildRendererSystemPrompt } from "../../engine/gm-prompt/injection.ts";
 
 const RENDERER_MAX_TOKENS = 8192;
@@ -195,7 +194,12 @@ async function streamProse(
       systemPrompt,
       messages: rendererMessages.map((message) => toStreamMessage(message, model)),
     },
-    { apiKey: auth.apiKey, headers: auth.headers, maxTokens: RENDERER_MAX_TOKENS },
+    {
+      apiKey: auth.apiKey,
+      headers: auth.headers,
+      maxTokens: RENDERER_MAX_TOKENS,
+      temperature: resolveRenderTemperature(ctx),
+    },
   );
   let draft = "";
   try {
@@ -345,13 +349,19 @@ async function writeTurnDigest(
       "本轮正文：",
       prose,
     ].join("\n");
-    const events = stream(
+    // 摘要是纯压缩活：推理模型降到最低档，省 token 也更快；非推理模型不传。
+    const events = streamSimple(
       model,
       {
         systemPrompt: "你是叙事存档员，只输出一行自然叙述的前情提要。",
         messages: [{ role: "user", content: [{ type: "text", text: prompt }], timestamp: 0 }],
       },
-      { apiKey: auth.apiKey, headers: auth.headers, maxTokens: DIGEST_MAX_TOKENS },
+      {
+        apiKey: auth.apiKey,
+        headers: auth.headers,
+        maxTokens: DIGEST_MAX_TOKENS,
+        reasoning: model.reasoning ? "minimal" : undefined,
+      },
     );
     let digest = "";
     for await (const event of events) {
@@ -367,6 +377,24 @@ async function writeTurnDigest(
   } catch {
     // 静默：摘要缺位时渲染自动回退机械 packet 摘要。
   }
+}
+
+/**
+ * 渲染器 temperature：`FATE_RENDER_TEMPERATURE=0.9` 之类。默认不传
+ * （部分 provider/模型拒绝该参数，误传会让每轮渲染都回退机械摘要）；
+ * 设了但解析不出或越界时告警并忽略。
+ */
+function resolveRenderTemperature(ctx: ExtensionContext): number | undefined {
+  const raw = process.env["FATE_RENDER_TEMPERATURE"]?.trim();
+  if (raw === undefined || raw === "") {
+    return undefined;
+  }
+  const value = Number(raw);
+  if (!Number.isFinite(value) || value < 0 || value > 2) {
+    notify(ctx, `FATE_RENDER_TEMPERATURE 应为 0~2 的数字，得到：${raw}，已忽略`, "warning");
+    return undefined;
+  }
+  return value;
 }
 
 /**
