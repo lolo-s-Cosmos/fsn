@@ -11,3 +11,4 @@
 # Build / deps
 node_modules/
 dist/
+docs/render-bench/

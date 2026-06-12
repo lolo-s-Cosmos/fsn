@@ -69,9 +69,9 @@ void test("negation-reversal-colloquial hits narration variants but spares dialo
   assert.ok(!ruleIds("「不是商量。是判断。」").includes(rule));
   // 普通否定句 + 长叙述接句放过
   assert.ok(
-    !ruleIds(
-      "你不是第一次来这里。是夜里的钟声把这条路变得陌生，让每一步都踩在回忆外面。",
-    ).includes(rule),
+    !ruleIds("你不是第一次来这里。是夜里的钟声把这条路变得陌生，让每一步都踩在回忆外面。").includes(
+      rule,
+    ),
   );
 });
 
