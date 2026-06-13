@@ -16,6 +16,7 @@ import { manageFactionClockToolDefinition } from "./state/manage-faction-clock.t
 import { patchStateToolDefinition } from "./state/patch-state.ts";
 import { privateResolveToolDefinition } from "./state/private-resolve.ts";
 import { progressSceneBeatToolDefinition } from "./state/progress-scene-beat.ts";
+import { recallMemoryToolDefinition } from "./state/recall-memory.ts";
 import { recordActorKnowledgeToolDefinition } from "./state/record-actor-knowledge.ts";
 import { recordMemoryToolDefinition } from "./state/record-memory.ts";
 import { recordOffscreenEventToolDefinition } from "./state/record-offscreen-event.ts";
@@ -28,6 +29,7 @@ import { setScenePresenceToolDefinition } from "./state/set-scene-presence.ts";
 import { submitDirectionPacketToolDefinition } from "./state/submit-direction-packet.ts";
 import { updateActorAgendaToolDefinition } from "./state/update-actor-agenda.ts";
 import { updateActorConditionToolDefinition } from "./state/update-actor-condition.ts";
+import { updateActorImpressionToolDefinition } from "./state/update-actor-impression.ts";
 import { updateEconomyToolDefinition } from "./state/update-economy.ts";
 import { updateHookToolDefinition } from "./state/update-hook.ts";
 import { updateServantFormToolDefinition } from "./state/update-servant-form.ts";
@@ -47,6 +49,8 @@ const TOOL_DEFINITIONS: readonly FsnToolDefinition[] = [
   updateActorAgendaToolDefinition,
   recordActorKnowledgeToolDefinition,
   recordRelationshipSignalToolDefinition,
+  recallMemoryToolDefinition,
+  updateActorImpressionToolDefinition,
   updateActorConditionToolDefinition,
   setScenePresenceToolDefinition,
   upsertActorToolDefinition,

@@ -6,10 +6,9 @@
 
 优先级总览（2026-06-14 更新：#12 已验收；#1/#5/#15/#16/#17 已落地）：
 
-1. 已完成地基：#8 JSONL 审计脚本、#12 双 pass、#1 输出契约机械执法、#15 NPC agenda/knowledge lens、#16 关系信号账本、#17 pressure palette、#18 Windows 启动 parity、#5 parallel-line 调用工具化
-2. 当前建议下一批：#6 上下文经济（presence 驱动 NPC 卡片 + recall_memory）
-3. 可随时穿插的正交项：#9 RNG
-4. 后置增强：#10 玩家侧小件、#14 heavy 轮并行渲染选优、#7 canon 研究缓存
+1. 已完成地基：#8 JSONL 审计脚本、#12 双 pass、#1 输出契约机械执法、#15 NPC agenda/knowledge lens、#16 关系信号账本、#17 pressure palette、#18 Windows 启动 parity、#5 parallel-line 调用工具化、#6 上下文经济
+2. 当前建议下一批：#9 Seeded RNG（正交项，可快速穿插）
+3. 后置增强：#10 玩家侧小件、#14 heavy 轮并行渲染选优、#7 canon 研究缓存
 
 ---
 
@@ -120,19 +119,25 @@ interface ScheduledEvent {
 
 ## 6. 上下文经济：presence 驱动 NPC 卡片 + 记忆检索
 
-- [ ] 状态：未开始
+- [x] 状态：已完成（2026-06-14）
 
-两个长跑缺口：
+落地清单：
 
-a) **NPC 声音一致性没有载体**。有 `protagonist-impression.md` 但 NPC 没有对应物，口吻/情绪立场在 compaction 后只剩 texture bullets。
+a) **NPC 印象卡**（`ActorImpression`）——公开层 per-actor voice/posture/texture 快照：
 
-- per-actor impression 卡（公开层，几行即可），beat complete 或 compaction 时由模型/子代理蒸馏更新
-- pre-response 注入时只注入当前 scene presence 里的 actor 卡片——presence 已是 canonical state，免费路由信号
+- 类型 `ActorImpression`（presence / actionStyle / relationshipPosture / voiceMaterial / updatedAt）加入 `PublicGameState.actorImpressions`。
+- 领域逻辑 `engine/core/actor-impression.ts`：`upsertActorImpression` upsert；`presentActorImpressions` 按 scene.presentActorIds 过滤；`formatPresenceImpressionCards` 格式化注入文本。
+- `update_actor_impression` 领域工具（`tools/state/update-actor-impression.ts`）。
+- 新 runtime prompt source `presence-impressions`，注册在 `preset-settlement.json` pre-response slot priority 15。在场 NPC 印象卡自动注入 pre-response。
+- schema v8→9 迁移，新增 `actorImpressions: []`。
 
-b) **Campaign memory 不可检索**。eventLog/pinnedFacts 只进 brief 的「最近重大记忆」，旧事实靠 compaction 摘要侥幸存活。
+b) **Campaign memory 检索**：
 
-- `recall_memory(query)` 查询工具（关键词/actor/地点过滤即可，不上向量）+ tool-policy 一行路由规则
-- 更自动版本：brief 按当前 location/在场 actor 关联注入 2-3 条相关旧记忆
+- `engine/core/memory-recall.ts`：`recallMemory(state, query)` 纯函数，支持 keywords（OR）、actorId、location、scope 过滤，不上向量。
+- `recall_memory` 领域工具（`tools/state/recall-memory.ts`）：只读，不改状态。
+- tool-policy 更新：需要回忆旧事实时调用 recall_memory，不凭模型记忆编造。
+
+进阶（未做）：brief 按当前 location/在场 actor 自动关联注入 2-3 条相关旧记忆。等待实际 session 审计反馈后再决定是否值得。
 
 ## 7. Canon 研究缓存（casting 子代理）
 

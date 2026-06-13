@@ -2,8 +2,9 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { formatPresenceImpressionCards } from "../core/actor-impression.ts";
 import { buildGmBrief } from "../core/public-projection.ts";
-import { getPublicState } from "../core/state-store.ts";
+import { getPublicState, getState } from "../core/state-store.ts";
 import { isRecord } from "../core/typebox-validation.ts";
 import {
   loadPromptPreset,
@@ -91,6 +92,9 @@ function resolvePromptModuleBody(module: PromptPresetModule): string {
   if (module.source.kind === "file") {
     return readPromptFile(module.source.path);
   }
+  if (module.source.name === "presence-impressions") {
+    return buildPresenceImpressionsText();
+  }
   return buildStatePressureText();
 }
 
@@ -138,6 +142,25 @@ function buildInjectedUserMessage(header: string, body: string): TextMessage {
     content: [{ type: "text", text: `<${header}>\n${body}\n</${header}>` }],
     timestamp: 0,
   };
+}
+
+function buildPresenceImpressionsText(): string {
+  try {
+    const state = getState();
+    const text = formatPresenceImpressionCards(state);
+    if (text === null) {
+      return "当前场景没有在场 NPC 印象卡。重要 NPC 入场后用 update_actor_impression 建立印象卡。";
+    }
+    return [
+      "当前在场 NPC 印象卡（由 presence 自动路由）：",
+      "",
+      text,
+      "",
+      "NPC 台词、行动、情绪必须与印象卡一致。重大变化后用 update_actor_impression 更新。",
+    ].join("\n");
+  } catch {
+    return "印象卡注入失败；可能尚未初始化状态。";
+  }
 }
 
 function buildStatePressureText(): string {

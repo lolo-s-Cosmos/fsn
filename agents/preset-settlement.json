@@ -74,6 +74,14 @@
       "source": "agents/gm-turn-reminder.md"
     },
     {
+      "id": "presence-impressions",
+      "enabled": true,
+      "slot": "pre-response",
+      "priority": 15,
+      "header": "presence_impressions",
+      "source": "runtime:presence-impressions"
+    },
+    {
       "id": "direction-contract",
       "enabled": true,
       "slot": "final-contract",

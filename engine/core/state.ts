@@ -93,7 +93,7 @@ export interface GameState {
 }
 
 export interface StateMeta {
-  schemaVersion: 8;
+  schemaVersion: 9;
   createdAt: string;
   updatedAt: string;
 }
@@ -115,6 +115,8 @@ export interface PublicGameState {
   hooks: HookState[];
   /** 玩家已知的关系信号证据链；只记录行为证据，不写隐藏内心判词 */
   relationshipSignals: RelationshipSignal[];
+  /** NPC 印象卡：voice/posture/texture 蒸馏快照，presence 驱动注入 */
+  actorImpressions: ActorImpression[];
 }
 
 export type HookStatus = "active" | "parked" | "paid" | "escalated" | "retired";
@@ -604,6 +606,25 @@ export interface SecretEventMemory {
   relatedActorIds: ActorId[];
 }
 
+/**
+ * NPC 印象卡（backlog #6a）。
+ * 公开层，几行即可。beat complete 或 compaction 时由 GM 蒸馏更新；
+ * pre-response 注入时只注入当前 scene.presentActorIds 里的卡片。
+ */
+export interface ActorImpression {
+  actorId: ActorId;
+  /** 外在气场：给人的第一印象、体格/气质/压迫感（1 行） */
+  presence: string;
+  /** 行动风格：说话习惯、决策偏好、典型行为模式（1 行） */
+  actionStyle: string;
+  /** 当前对主角的姿态（1 行） */
+  relationshipPosture: string;
+  /** 可选：语气材料（口头禅、断句习惯、情绪标记） */
+  voiceMaterial: string;
+  /** 最后更新时刻（游戏内时钟） */
+  updatedAt: string;
+}
+
 export interface TimeExportState extends ClockState {
   displayTime: string;
   date: string;
@@ -617,4 +638,4 @@ export interface StateExport extends Omit<GameState, "public"> {
 
 export type State = GameState;
 
-export const CURRENT_STATE_SCHEMA_VERSION = 8;
+export const CURRENT_STATE_SCHEMA_VERSION = 9;

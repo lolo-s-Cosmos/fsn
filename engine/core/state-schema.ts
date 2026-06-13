@@ -65,7 +65,7 @@ function nullable<T extends TSchema>(schema: T) {
 }
 
 export const STATE_META_SCHEMA = Type.Object({
-  schemaVersion: Type.Literal(8),
+  schemaVersion: Type.Literal(9),
   createdAt: ISO_INSTANT_SCHEMA,
   updatedAt: ISO_INSTANT_SCHEMA,
 });
@@ -415,6 +415,15 @@ const RELATIONSHIP_SIGNAL_SCHEMA = Type.Object({
   visibility: RELATIONSHIP_SIGNAL_VISIBILITY_SCHEMA,
 });
 
+const ACTOR_IMPRESSION_SCHEMA = Type.Object({
+  actorId: NON_EMPTY_STRING_SCHEMA,
+  presence: NON_EMPTY_STRING_SCHEMA,
+  actionStyle: NON_EMPTY_STRING_SCHEMA,
+  relationshipPosture: NON_EMPTY_STRING_SCHEMA,
+  voiceMaterial: Type.String(),
+  updatedAt: ISO_INSTANT_SCHEMA,
+});
+
 export const PUBLIC_GAME_STATE_SCHEMA = Type.Object({
   campaign: CAMPAIGN_STATE_SCHEMA,
   clock: CLOCK_STATE_SCHEMA,
@@ -429,6 +438,7 @@ export const PUBLIC_GAME_STATE_SCHEMA = Type.Object({
   obligations: Type.Array(TURN_OBLIGATION_SCHEMA),
   hooks: Type.Array(HOOK_STATE_SCHEMA),
   relationshipSignals: Type.Array(RELATIONSHIP_SIGNAL_SCHEMA),
+  actorImpressions: Type.Array(ACTOR_IMPRESSION_SCHEMA),
 });
 
 export const SECRET_REVEAL_STATES = ["hidden", "foreshadowed", "revealed"] as const;
@@ -648,6 +658,7 @@ function assertStateInvariants(state: State): void {
   assertActorAgendaInvariants(state, actors);
   assertActorKnowledgeLensInvariants(state, actors);
   assertRelationshipSignalInvariants(state, actors);
+  assertActorImpressionInvariants(state, actors);
   assertFactionClockInvariants(state);
 }
 
@@ -783,6 +794,17 @@ function assertUniqueRelationshipSignalId(id: string, seen: Set<string>): void {
     throw new Error(`重复 relationship signal id: ${id}。`);
   }
   seen.add(id);
+}
+
+function assertActorImpressionInvariants(state: State, actors: ActorRegistry): void {
+  const seen = new Set<string>();
+  for (const impression of state.public.actorImpressions) {
+    assertActorExists(impression.actorId, actors, "actorImpressions[].actorId");
+    if (seen.has(impression.actorId)) {
+      throw new Error(`重复 actor impression: ${impression.actorId}。`);
+    }
+    seen.add(impression.actorId);
+  }
 }
 
 function assertActorExists(actorId: string, actors: ActorRegistry, fieldName: string): void {

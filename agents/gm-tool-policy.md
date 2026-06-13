@@ -41,6 +41,8 @@ Per-tool usage rules live in each tool's schema description; follow them. Cross-
 - If one reply changes scene / condition / servant / economy / memory, and Scene Beat lifecycle cannot cover it: aggregate with `commit_turn` inside the current player action window.
 - Before pressure enters narration, decide whether it needs state landing: wounds/fatigue use `update_actor_condition`; mana/Saint Graph loss use `update_servant_form`; money/resources use `update_economy`; relationship cost or trust movement use `record_relationship_signal`; lasting hostility or missed windows use `record_memory`; offscreen hostile progress uses `record_offscreen_event`.
 - When an important NPC gains/changes a goal, fear, order, or acts on their own initiative, use `update_actor_agenda`; when their knowledge, suspicion, false belief, or forbidden knowledge changes, use `record_actor_knowledge`; when a relationship turn creates behavior evidence, use `record_relationship_signal`. Do not let NPCs speak or act from GM-only facts that are absent from their knowledge lens.
+- 重要 NPC 入场、态度或关系重大变化、beat 结束、arc 转换、或 compaction 前，用 `update_actor_impression` 蒸馏或更新印象卡（presence / actionStyle / relationshipPosture / voiceMaterial）。印象卡在该 actor 在场时自动注入 pre-response，保证 compaction 后 NPC 声音一致性。
+- 需要回忆旧事实（GM brief 只有最近 3 条 eventLog）时，调用 `recall_memory`（关键词/actor/地点/scope 过滤），不要凭模型记忆编造已记录事实。
 
 ## Project subagent routing
 

@@ -34,7 +34,7 @@ void test("injectGmPromptMessages inserts slot-based prompt stack", () => {
   const injected = injectGmPromptMessages<UserMessage>(messages);
   const texts = injected.map((message) => textOf(message));
 
-  assert.equal(injected.length, 11);
+  assert.equal(injected.length, 12);
   assert.match(texts[0] ?? "", /<settlement_principles>/);
   assert.match(texts[1] ?? "", /<world_context>/);
   assert.match(texts[2] ?? "", /<input_guide>/);
@@ -47,8 +47,9 @@ void test("injectGmPromptMessages inserts slot-based prompt stack", () => {
   assert.match(texts[8] ?? "", /目标推进规则/);
   assert.match(texts[8] ?? "", /当前没有可 resolve 的目标/);
   assert.doesNotMatch(texts[8] ?? "", /active beat 收口/);
-  assert.match(texts[9] ?? "", /<turn_reminder>/);
-  assert.match(texts[10] ?? "", /<direction_contract>/);
+  assert.match(texts[9] ?? "", /<presence_impressions>/);
+  assert.match(texts[10] ?? "", /<turn_reminder>/);
+  assert.match(texts[11] ?? "", /<direction_contract>/);
   // 结算投影零 style/render 模块
   for (const text of texts) {
     assert.doesNotMatch(
