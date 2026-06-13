@@ -6,9 +6,9 @@
 
 优先级总览（2026-06-14 更新：#12 已验收；#1/#5/#15/#16/#17 已落地）：
 
-1. 已完成地基：#8 JSONL 审计脚本、#12 双 pass、#1 输出契约机械执法、#15 NPC agenda/knowledge lens、#16 关系信号账本、#17 pressure palette、#18 Windows 启动 parity、#5 parallel-line 调用工具化、#6 上下文经济
-2. 当前建议下一批：#9 Seeded RNG（正交项，可快速穿插）
-3. 后置增强：#10 玩家侧小件、#14 heavy 轮并行渲染选优、#7 canon 研究缓存
+1. 已完成地基：#8 JSONL 审计脚本、#12 双 pass、#1 输出契约机械执法、#15 NPC agenda/knowledge lens、#16 关系信号账本、#17 pressure palette、#18 Windows 启动 parity、#5 parallel-line 调用工具化、#6 上下文经济、#9 Seeded RNG
+2. 建议下一批：#10 玩家侧小件（/relations → /hooks → /journal → /recap）
+3. 后置增强：#14 heavy 轮并行渲染选优、#7 canon 研究缓存
 
 ---
 
@@ -166,13 +166,14 @@ AGENTS.md 说「先写 JSONL 统计复现」，但没有现成统计工具。建
 
 ## 9. 确定性随机源（seeded RNG）
 
-- [ ] 状态：未开始
+- [x] 状态：已完成（2026-06-14）
 
-gm-rules 禁裸骰，但「同 rank 互换」「变动输出宝具 X~Y」这类裁决实际是模型脑内挑结果——不可审计、可被叙事倾向带偏。
+落地清单：
 
-- engine 加 seeded RNG：seed 进 state，每次消耗记入 turnLog
-- `resolve_combat_exchange` 内部使用
-- 结果可复现、可测试；rewind 后重放行为一致
+- `engine/core/seeded-rng.ts`：xoshiro128** 算法，`seededRandomInt(state, bound)` 和 `seededRandomFloat(state)`。seed 存在 `state.meta.rngSeed`，每次消耗推进 `state.meta.rngCounter`。counter fast-forward 保证 rewind 后重放行为一致。
+- `resolve_combat_exchange` 内部战场变数 roll 已改用 seeded RNG（原 `randomInt(100)` from `node:crypto` → `seededRandomInt(draft, 100)`）。
+- schema v9→10 迁移（rngSeed + rngCounter）。
+- 9 新测试（确定性、序列范围、边界、fast-forward、差异性）。
 
 ## 10. 玩家侧小件
 

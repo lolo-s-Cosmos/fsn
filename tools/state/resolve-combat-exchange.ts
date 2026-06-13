@@ -1,6 +1,5 @@
 import type { FsnToolDefinition } from "../runtime/tool-definition.ts";
 import { Type } from "typebox";
-import { randomInt } from "node:crypto";
 
 import {
   formatCombatSwing,
@@ -11,6 +10,7 @@ import {
 } from "../../engine/core/combat-exchange.ts";
 import { parseCombatExchangeInput } from "../../engine/core/combat-exchange-schema.ts";
 import { recordObligation } from "../../engine/core/obligations.ts";
+import { seededRandomInt } from "../../engine/core/seeded-rng.ts";
 import type { State } from "../../engine/core/state.ts";
 import { noNumberNarrativeHint } from "../runtime/narrative-hints.ts";
 import type { ToolResult } from "../runtime/tool-result.ts";
@@ -25,7 +25,7 @@ export function resolveCombatExchangeTool(params: unknown, sessionManager: unkno
     execute: (draft: State) => {
       const result = resolveCombatExchange(draft, {
         ...input,
-        swing: input.swing ?? rollCombatSwing(),
+        swing: input.swing ?? rollCombatSwing(draft),
       });
       const recorded = result.stateLandings
         .filter((landing) => landing.required)
@@ -81,8 +81,8 @@ function formatStateLanding(landing: CombatStateLanding): string {
   return `- ${strength} ${landing.kind}: ${landing.reason}`;
 }
 
-function rollCombatSwing(): CombatSwing {
-  const roll = randomInt(100);
+function rollCombatSwing(draft: State): CombatSwing {
+  const roll = seededRandomInt(draft, 100);
   if (roll < 10) return "bad-break";
   if (roll < 30) return "pressure";
   if (roll < 70) return "neutral";

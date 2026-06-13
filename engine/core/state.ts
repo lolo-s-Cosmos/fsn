@@ -93,9 +93,13 @@ export interface GameState {
 }
 
 export interface StateMeta {
-  schemaVersion: 9;
+  schemaVersion: 10;
   createdAt: string;
   updatedAt: string;
+  /** Seeded RNG seed（backlog #9）：确定性随机源，初始化时生成 */
+  rngSeed: number;
+  /** Seeded RNG counter：每次消耗 +1，rewind 后重放行为一致 */
+  rngCounter: number;
 }
 
 export interface PublicGameState {
@@ -638,4 +642,4 @@ export interface StateExport extends Omit<GameState, "public"> {
 
 export type State = GameState;
 
-export const CURRENT_STATE_SCHEMA_VERSION = 9;
+export const CURRENT_STATE_SCHEMA_VERSION = 10;

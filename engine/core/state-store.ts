@@ -3,6 +3,7 @@ import type { HumanActorState, PublicGameState, State, StateExport } from "./sta
 import { mkdirSync, writeFileSync } from "node:fs";
 
 import { formatHumanTime, nowIso } from "./date-time.ts";
+import { generateSeed } from "./seeded-rng.ts";
 import { pruneExpiredParamModifiers } from "./servant.ts";
 import { parseStateSchema } from "./state-schema.ts";
 import { CURRENT_STATE_SCHEMA_VERSION } from "./state.ts";
@@ -140,6 +141,8 @@ export function createInitialState(): State {
       schemaVersion: CURRENT_STATE_SCHEMA_VERSION,
       createdAt: now,
       updatedAt: now,
+      rngSeed: generateSeed(),
+      rngCounter: 0,
     },
     public: {
       campaign: {
@@ -288,6 +291,8 @@ function migrateOneSchemaVersion(
       return migrateGameStateV7ToV8(raw);
     case 8:
       return migrateGameStateV8ToV9(raw);
+    case 9:
+      return migrateGameStateV9ToV10(raw);
     default:
       throw new Error(
         `不支持的 state schemaVersion: ${version}。当前支持逐步迁移到 ${CURRENT_STATE_SCHEMA_VERSION}。`,
@@ -371,9 +376,18 @@ function migrateGameStateV7ToV8(raw: Record<string, unknown>): Record<string, un
 function migrateGameStateV8ToV9(raw: Record<string, unknown>): Record<string, unknown> {
   const next = structuredClone(raw);
   const meta = assertRecordForMigration(next["meta"], "meta");
-  meta["schemaVersion"] = CURRENT_STATE_SCHEMA_VERSION;
+  meta["schemaVersion"] = 9;
   const publicState = assertRecordForMigration(next["public"], "public");
   publicState["actorImpressions"] = [];
+  return next;
+}
+
+function migrateGameStateV9ToV10(raw: Record<string, unknown>): Record<string, unknown> {
+  const next = structuredClone(raw);
+  const meta = assertRecordForMigration(next["meta"], "meta");
+  meta["schemaVersion"] = CURRENT_STATE_SCHEMA_VERSION;
+  meta["rngSeed"] = generateSeed();
+  meta["rngCounter"] = 0;
   return next;
 }
 
