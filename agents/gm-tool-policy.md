@@ -64,7 +64,11 @@ Call `parallel-line` to advance one relevant offscreen faction in these cases, u
 - The current beat closes, an arc transition occurs, or the player gains a safety window.
 - Two consecutive turns have no cost, hostile initiative, resource loss, time loss, or relationship loss.
 
-Before calling it, inspect the most recent 2-3 offscreen events and the injected `pressurePalette` cooldown flags. The input must include `recentOffscreenEvents` and a structured `activePressurePalette` copied/narrowed from the current timeline slots. Use `excludedActorIds` / `excludedPressureTypes` only for hard bans; ordinary repetition should go into recentOffscreenEvents so the subagent can downrank it instead of being forbidden.
+**使用 `run_parallel_line` 工具装配输入**：不要手写完整 `ParallelLineInput`。调用 `run_parallel_line`，只需传 `lineId` + `timeWindow` + 可选偏好（`preferredPressureType` / `excludedActorIds` / `excludedPressureTypes` / `majorBeatEnd` / `arcTransition`），engine 从 secret state、actor agenda、offscreenEventLog、pressure palette 自动装配其余字段。
+
+工具返回装配好的 JSON 后，将其作为 task 传给 `parallel-line` 子代理（`agentScope: "project"`）。子代理返回后审查候选结果，用 `record_offscreen_event` 或其它领域工具落地。
+
+Use `excludedActorIds` / `excludedPressureTypes` only for hard bans; ordinary repetition is automatically tracked in `recentOffscreenEvents` and cooldown flags so the subagent can downrank it.
 
 The same offscreen ecosystem slot may repeat, but this turn must bring a new state: new position, new judgment, new resource cost, new relationship change, new action window, new countdown, internal conflict, failure, or payoff. Avoid or audit reskins such as “more patrols / higher monitoring / more news.”
 

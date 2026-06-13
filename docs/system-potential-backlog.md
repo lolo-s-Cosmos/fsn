@@ -4,10 +4,10 @@
 原则轴：把还停留在 prompt 里的纪律下沉为结构；把 GM 手工装配的活变成 engine 自动供给。
 每项做完勾掉，动手前先重读对应小节，按当时代码现状校正方案。
 
-优先级总览（2026-06-14 更新：#12 已验收；#1/#15/#16/#17 已落地）：
+优先级总览（2026-06-14 更新：#12 已验收；#1/#5/#15/#16/#17 已落地）：
 
-1. 已完成地基：#8 JSONL 审计脚本、#12 双 pass、#1 输出契约机械执法、#15 NPC agenda/knowledge lens、#16 关系信号账本、#17 pressure palette、#18 Windows 启动 parity
-2. 当前建议下一批：#5 parallel-line 调用工具化（吃 #15/#16/#17 红利）→ #6 上下文经济
+1. 已完成地基：#8 JSONL 审计脚本、#12 双 pass、#1 输出契约机械执法、#15 NPC agenda/knowledge lens、#16 关系信号账本、#17 pressure palette、#18 Windows 启动 parity、#5 parallel-line 调用工具化
+2. 当前建议下一批：#6 上下文经济（presence 驱动 NPC 卡片 + recall_memory）
 3. 可随时穿插的正交项：#9 RNG
 4. 后置增强：#10 玩家侧小件、#14 heavy 轮并行渲染选优、#7 canon 研究缓存
 
@@ -106,14 +106,17 @@ interface ScheduledEvent {
 
 ## 5. parallel-line 调用工具化（engine 装配输入 + schema 验收输出）
 
-- [ ] 状态：未开始
+- [x] 状态：已完成（2026-06-14）
 
-现在 GM 手写 `ParallelLineInput`（knownFacts/actorGoals/previousLineState 全靠主模型现编）：装配质量不稳、可能泄漏不该给的内容、懒了就不调。`<timeline_state_context>` 注入已证明 engine 装配路线可行，再走一步：
+落地清单：
 
-- `run_parallel_line` 领域工具（或扩展内拦截）：输入只要 `lineId + timeWindow + 可选偏好`，其余字段由 engine 从 secret state、actor agenda、offscreenEventLog 自动装配
-- 输出用 TypeBox 验证 `ParallelLineOutput`，解析失败自动重试一次——bare JSON 契约从 prompt 恳求变成代码验收
-- 解锁 **async 预取**：beat 进行中后台 `async: true` 先跑，玩家读正文的时间就是子代理计算时间，下轮取结果，延迟归零
-- 前置依赖：actor 加轻量 `agenda`（目标/恐惧/当前指令），同时喂 #6
+- `run_parallel_line` 领域工具（`tools/state/run-parallel-line.ts`）：GM 只传 `lineId + timeWindow + 可选偏好`，engine 从 secret state、actor agenda、offscreenEventLog、pressure palette 自动装配完整 `ParallelLineInput`，返回可直接传给 `parallel-line` 子代理的 JSON。
+- engine-side assembler（`engine/core/parallel-line-assembler.ts`）：自动提取 knownFacts（public memory eventLog + pinnedFacts）、privateFacts（campaignSecrets 未 reveal）、actorGoals（actorAgendas）、forbiddenEscalations（storyWindow 自动合并）、recentOffscreenEvents（最近 6 条 + pressureType 分类）、pressure palette（带 recentUses + coolingDown）。
+- `ParallelLineOutput` TypeBox 验证器（`engine/core/parallel-line-output-schema.ts`）：子代理返回裸 JSON 字符串由 TypeBox 严格验证，解析失败抛 Error 让调用方重试——从 prompt 恳求变成代码验收。
+- `ParallelLineInput` / `ParallelLineOutput` 扩展：新增 `recentOffscreenEvents`、`excludedActorIds`、`excludedPressureTypes`、`preferredPressureType`、`majorBeatEnd`、`arcTransition`；输出新增 `timelineId`、`toneDriftRisk`、`genreFitNotes`。
+- `gm-tool-policy.md` parallel-line 小节改为 `run_parallel_line` 工具装配流程。
+- 前置依赖 #15（actor agenda）、#16（relationship signal）、#17（pressure palette）已在先前完成。
+- async 预取暂缓：需要 pi-subagents result-intercom 桥，待后续 #14 一并处理。
 
 ## 6. 上下文经济：presence 驱动 NPC 卡片 + 记忆检索
 

@@ -25,6 +25,13 @@ export interface ParallelLinePressureSlotHint {
   forbiddenWhen: string[];
 }
 
+export interface ParallelLineRecentEvent {
+  lineId: string;
+  actorIds: string[];
+  pressureType: string;
+  summary: string;
+}
+
 export interface ParallelLineInput {
   lineId: string;
   timelineId: TimelineId;
@@ -40,10 +47,19 @@ export interface ParallelLineInput {
   actorGoals: string[];
   previousLineState: string;
   playerSideSummary: string;
+  recentOffscreenEvents?: ParallelLineRecentEvent[];
+  excludedActorIds?: string[];
+  excludedPressureTypes?: string[];
+  preferredPressureType?: string;
+  majorBeatEnd?: boolean;
+  arcTransition?: boolean;
 }
+
+export type ParallelLineToneDriftRisk = "none" | "watch" | "drifting";
 
 export interface ParallelLineOutput {
   lineId: string;
+  timelineId: TimelineId;
   actorIds: string[];
   timeRange: ParallelLineTimeWindow;
   outcome: ParallelLineOutcome;
@@ -51,6 +67,8 @@ export interface ParallelLineOutput {
   secretStateChanges: string[];
   publicLeakCandidates: string[];
   futureHooks: string[];
+  toneDriftRisk: ParallelLineToneDriftRisk;
+  genreFitNotes: string[];
   riskFlags: string[];
   optionalNarrativeSnippet: string | null;
 }

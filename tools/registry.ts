@@ -23,6 +23,7 @@ import { recordRelationshipSignalToolDefinition } from "./state/record-relations
 import { resolveCombatExchangeToolDefinition } from "./state/resolve-combat-exchange.ts";
 import { retireActorToolDefinition } from "./state/retire-actor.ts";
 import { revealSecretToolDefinition } from "./state/reveal-secret.ts";
+import { runParallelLineToolDefinition } from "./state/run-parallel-line.ts";
 import { setScenePresenceToolDefinition } from "./state/set-scene-presence.ts";
 import { submitDirectionPacketToolDefinition } from "./state/submit-direction-packet.ts";
 import { updateActorAgendaToolDefinition } from "./state/update-actor-agenda.ts";
@@ -53,6 +54,7 @@ const TOOL_DEFINITIONS: readonly FsnToolDefinition[] = [
   updateServantFormToolDefinition,
   revealSecretToolDefinition,
   resolveCombatExchangeToolDefinition,
+  runParallelLineToolDefinition,
   privateResolveToolDefinition,
   submitDirectionPacketToolDefinition,
   updateHookToolDefinition,

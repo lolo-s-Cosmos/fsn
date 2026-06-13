@@ -58,7 +58,9 @@ export type {
   ParallelLineOutput,
   ParallelLineOutcome,
   ParallelLinePressureSlotHint,
+  ParallelLineRecentEvent,
   ParallelLineTimeWindow,
+  ParallelLineToneDriftRisk,
 } from "./parallel-line.ts";
 
 export type ActorId = string;
